@@ -2,12 +2,22 @@ import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
 import { User, AuthState, LoginFormData, RegisterFormData, ApiResponse } from '../../types';
 import authService from '../../services/authService';
 
+// Проверяем localStorage на наличие информации об авторизации
+const getInitialAuthState = (): boolean => {
+  try {
+    const authFlag = localStorage.getItem('isAuthenticated');
+    return authFlag === 'true';
+  } catch {
+    return false;
+  }
+};
+
 // Начальное состояние
 const initialState: AuthState = {
   user: null,
-  token: localStorage.getItem('token'),
+  token: null,
   isLoading: false,
-  isAuthenticated: false,
+  isAuthenticated: getInitialAuthState(),
   error: null,
 };
 
@@ -53,6 +63,9 @@ export const getCurrentUser = createAsyncThunk<
   async (_, { rejectWithValue }) => {
     try {
       const response = await authService.getMe();
+      if (!response.user) {
+        return rejectWithValue('User data not found');
+      }
       return response.user;
     } catch (error: any) {
       return rejectWithValue(error.message || 'Failed to get user data');
@@ -84,7 +97,7 @@ export const forgotPassword = createAsyncThunk<
   async ({ email }, { rejectWithValue }) => {
     try {
       const response = await authService.forgotPassword(email);
-      return response.message;
+      return response.message || 'Password reset email sent';
     } catch (error: any) {
       return rejectWithValue(error.message || 'Failed to send reset email');
     }
@@ -116,7 +129,7 @@ export const verifyEmail = createAsyncThunk<
   async (token, { rejectWithValue }) => {
     try {
       const response = await authService.verifyEmail(token);
-      return response.message;
+      return response.message || 'Email verified successfully';
     } catch (error: any) {
       return rejectWithValue(error.message || 'Email verification failed');
     }
@@ -135,13 +148,13 @@ const authSlice = createSlice({
       state.user = action.payload.user;
       state.token = action.payload.token;
       state.isAuthenticated = true;
-      localStorage.setItem('token', action.payload.token);
+      localStorage.setItem('isAuthenticated', 'true');
     },
     clearCredentials: (state) => {
       state.user = null;
       state.token = null;
       state.isAuthenticated = false;
-      localStorage.removeItem('token');
+      localStorage.removeItem('isAuthenticated');
     },
     updateUser: (state, action: PayloadAction<Partial<User>>) => {
       if (state.user) {
@@ -162,7 +175,7 @@ const authSlice = createSlice({
         state.token = action.payload.token;
         state.isAuthenticated = true;
         state.error = null;
-        localStorage.setItem('token', action.payload.token);
+        localStorage.setItem('isAuthenticated', 'true');
       })
       .addCase(loginUser.rejected, (state, action) => {
         state.isLoading = false;
@@ -190,20 +203,22 @@ const authSlice = createSlice({
     builder
       .addCase(getCurrentUser.pending, (state) => {
         state.isLoading = true;
+        state.error = null;
       })
       .addCase(getCurrentUser.fulfilled, (state, action) => {
         state.isLoading = false;
         state.user = action.payload;
         state.isAuthenticated = true;
         state.error = null;
+        localStorage.setItem('isAuthenticated', 'true');
       })
       .addCase(getCurrentUser.rejected, (state, action) => {
         state.isLoading = false;
-        state.error = action.payload || 'Failed to get user data';
+        state.error = null; // Don't show error on initial auth check
         state.isAuthenticated = false;
         state.user = null;
         state.token = null;
-        localStorage.removeItem('token');
+        localStorage.removeItem('isAuthenticated');
       });
 
     // Logout
@@ -217,7 +232,7 @@ const authSlice = createSlice({
         state.token = null;
         state.isAuthenticated = false;
         state.error = null;
-        localStorage.removeItem('token');
+        localStorage.removeItem('isAuthenticated');
       })
       .addCase(logoutUser.rejected, (state, action) => {
         state.isLoading = false;
@@ -225,7 +240,7 @@ const authSlice = createSlice({
         state.user = null;
         state.token = null;
         state.isAuthenticated = false;
-        localStorage.removeItem('token');
+        localStorage.removeItem('isAuthenticated');
       });
 
     // Forgot password
@@ -240,7 +255,7 @@ const authSlice = createSlice({
       })
       .addCase(forgotPassword.rejected, (state, action) => {
         state.isLoading = false;
-        state.error = action.payload || 'Failed to send reset email';
+        state.error = action.payload as string || 'Failed to send reset email';
       });
 
     // Reset password
@@ -255,7 +270,7 @@ const authSlice = createSlice({
         state.token = action.payload.token;
         state.isAuthenticated = true;
         state.error = null;
-        localStorage.setItem('token', action.payload.token);
+        localStorage.setItem('isAuthenticated', 'true');
       })
       .addCase(resetPassword.rejected, (state, action) => {
         state.isLoading = false;
@@ -278,7 +293,7 @@ const authSlice = createSlice({
       })
       .addCase(verifyEmail.rejected, (state, action) => {
         state.isLoading = false;
-        state.error = action.payload || 'Email verification failed';
+        state.error = action.payload as string || 'Email verification failed';
       });
   },
 });

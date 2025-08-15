@@ -4,13 +4,19 @@ const User = require('../models/User');
 // Middleware для проверки JWT токена
 const authenticateToken = async (req, res, next) => {
   try {
-    const authHeader = req.headers.authorization;
-    const token = authHeader && authHeader.split(' ')[1]; // Bearer TOKEN
+    // Сначала пробуем получить токен из cookies
+    let token = req.cookies?.token;
+    
+    // Если нет в cookies, пробуем Authorization header
+    if (!token) {
+      const authHeader = req.headers.authorization;
+      token = authHeader && authHeader.split(' ')[1]; // Bearer TOKEN
+    }
 
     if (!token) {
-      return res.status(401).json({ 
-        success: false, 
-        message: 'Access token is required' 
+      return res.status(401).json({
+        success: false,
+        message: 'Access token is required'
       });
     }
 

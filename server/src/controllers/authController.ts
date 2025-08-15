@@ -29,7 +29,9 @@ const sendTokenResponse = (user: IUser, statusCode: number, res: Response): void
   const token = generateToken(user._id);
 
   const options = {
-    expires: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 дней
+    expires: new Date(
+      Date.now() + parseInt(process.env.JWT_COOKIE_EXPIRE || '7') * 24 * 60 * 60 * 1000
+    ),
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production'
   };

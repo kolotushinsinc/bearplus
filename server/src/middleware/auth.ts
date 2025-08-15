@@ -6,13 +6,19 @@ import { AuthRequest, JwtPayload } from '../types';
 // Middleware для проверки JWT токена
 export const authenticateToken = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const authHeader = req.headers.authorization;
-    const token = authHeader && authHeader.split(' ')[1]; // Bearer TOKEN
+    // Сначала пробуем получить токен из cookies
+    let token = req.cookies?.token;
+    
+    // Если нет в cookies, пробуем Authorization header
+    if (!token) {
+      const authHeader = req.headers.authorization;
+      token = authHeader && authHeader.split(' ')[1]; // Bearer TOKEN
+    }
 
     if (!token) {
-      res.status(401).json({ 
-        success: false, 
-        message: 'Access token is required' 
+      res.status(401).json({
+        success: false,
+        message: 'Access token is required'
       });
       return;
     }

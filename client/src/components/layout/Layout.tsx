@@ -1,5 +1,7 @@
 import * as React from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { useAppDispatch, useAppSelector } from '../../hooks/redux';
+import { logoutUser } from '../../store/slices/authSlice';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -7,9 +9,22 @@ interface LayoutProps {
 
 const Layout: React.FC<LayoutProps> = ({ children }) => {
   const location = useLocation();
-  const isAuthPage = ['/login', '/register', '/forgot-password', '/reset-password'].some(path => 
+  const navigate = useNavigate();
+  const dispatch = useAppDispatch();
+  const { user, isAuthenticated } = useAppSelector((state) => state.auth);
+  
+  const isAuthPage = ['/login', '/register', '/forgot-password', '/reset-password'].some(path =>
     location.pathname.startsWith(path)
   );
+
+  const handleLogout = async () => {
+    try {
+      await dispatch(logoutUser());
+      navigate('/');
+    } catch (error) {
+      console.error('Logout failed:', error);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gradient-dark flex flex-col">
@@ -48,18 +63,43 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                 </svg>
               </button>
             </div>
-            <Link
-              to="/login"
-              className="bg-white hover:bg-gray-100 text-black px-4 py-2 rounded text-sm font-medium transition-colors min-w-[80px]"
-            >
-              Вход
-            </Link>
-            <Link
-              to="/register"
-              className="btn-green text-sm min-w-[120px]"
-            >
-              Регистрация
-            </Link>
+            
+            {isAuthenticated ? (
+              <>
+                <Link
+                  to="/dashboard"
+                  className="bg-white hover:bg-gray-100 text-black px-4 py-2 rounded text-sm font-medium transition-colors min-w-[80px]"
+                >
+                  Кабинет
+                </Link>
+                <button
+                  onClick={handleLogout}
+                  className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded text-sm font-medium transition-colors min-w-[80px]"
+                >
+                  Выйти
+                </button>
+                {user && (
+                  <span className="text-white text-sm">
+                    {user.firstName} {user.lastName}
+                  </span>
+                )}
+              </>
+            ) : (
+              <>
+                <Link
+                  to="/login"
+                  className="bg-white hover:bg-gray-100 text-black px-4 py-2 rounded text-sm font-medium transition-colors min-w-[80px]"
+                >
+                  Вход
+                </Link>
+                <Link
+                  to="/register"
+                  className="btn-green text-sm min-w-[120px]"
+                >
+                  Регистрация
+                </Link>
+              </>
+            )}
           </div>
         </nav>
       </header>

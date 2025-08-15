@@ -1,12 +1,15 @@
 import * as React from 'react';
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { useAuth } from '../../contexts/AuthContext';
-import { LoginData } from '../../services/api';
+import { useAppDispatch, useAppSelector } from '../../hooks/redux';
+import { loginUser, clearError } from '../../store/slices/authSlice';
+import { LoginFormData } from '../../types';
 
 const LoginPage: React.FC = () => {
   const navigate = useNavigate();
-  const { login } = useAuth();
+  const dispatch = useAppDispatch();
+  const { isLoading, error, isAuthenticated } = useAppSelector((state) => state.auth);
+  
   const [formData, setFormData] = useState({
     login: '',
     password: '',
@@ -20,7 +23,18 @@ const LoginPage: React.FC = () => {
   });
 
   const [showPassword, setShowPassword] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Redirect if already authenticated
+  React.useEffect(() => {
+    if (isAuthenticated) {
+      navigate('/dashboard');
+    }
+  }, [isAuthenticated, navigate]);
+
+  // Clear errors when component mounts
+  React.useEffect(() => {
+    dispatch(clearError());
+  }, [dispatch]);
 
   const validateForm = () => {
     const newErrors = { login: '', password: '', general: '' };
@@ -47,49 +61,17 @@ const LoginPage: React.FC = () => {
     e.preventDefault();
     
     if (validateForm()) {
-      try {
-        setIsSubmitting(true);
-        setErrors({ login: '', password: '', general: '' });
-        
-        const loginData: LoginData = {
-          email: formData.login, // В API используется email для логина
-          password: formData.password
-        };
+      setErrors({ login: '', password: '', general: '' });
+      
+      const loginData: LoginFormData = {
+        email: formData.login,
+        password: formData.password
+      };
 
-        const response = await login(loginData);
-        
-        if (response.success) {
-          // Перенаправляем в личный кабинет
-          navigate('/dashboard');
-        }
-      } catch (error: any) {
-        console.error('Login failed:', error);
-        
-        const errorMessage = error.message || 'Произошла ошибка при входе';
-        
-        if (errorMessage.includes('Invalid credentials') || errorMessage.includes('credentials')) {
-          setErrors(prev => ({ 
-            ...prev, 
-            general: 'Неверный email или пароль' 
-          }));
-        } else if (errorMessage.includes('Account temporarily locked')) {
-          setErrors(prev => ({ 
-            ...prev, 
-            general: 'Аккаунт временно заблокирован из-за множественных попыток входа' 
-          }));
-        } else if (errorMessage.includes('Account is deactivated')) {
-          setErrors(prev => ({ 
-            ...prev, 
-            general: 'Аккаунт деактивирован' 
-          }));
-        } else {
-          setErrors(prev => ({ 
-            ...prev, 
-            general: 'Ошибка входа. Попробуйте снова.' 
-          }));
-        }
-      } finally {
-        setIsSubmitting(false);
+      const result = await dispatch(loginUser(loginData));
+      
+      if (loginUser.fulfilled.match(result)) {
+        navigate('/dashboard');
       }
     }
   };
@@ -116,8 +98,10 @@ const LoginPage: React.FC = () => {
 
         <form onSubmit={handleSubmit} className="space-y-4">
           {/* Общая ошибка */}
-          {errors.general && (
-            <div className="text-red-400 text-sm text-center mb-4">{errors.general}</div>
+          {(errors.general || error) && (
+            <div className="text-red-400 text-sm text-center mb-4">
+              {errors.general || error}
+            </div>
           )}
 
           {/* Email и Пароль */}
@@ -181,9 +165,9 @@ const LoginPage: React.FC = () => {
           <button
             type="submit"
             className="btn-green w-full mt-8 py-3"
-            disabled={isSubmitting}
+            disabled={isLoading}
           >
-            {isSubmitting ? 'Вход...' : 'Войти'}
+            {isLoading ? 'Вход...' : 'Войти'}
           </button>
 
           {/* Восстановить пароль */}

@@ -1,8 +1,9 @@
 import * as React from 'react';
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { useAuth } from '../../contexts/AuthContext';
-import { RegisterData } from '../../services/api';
+import { useAppDispatch, useAppSelector } from '../../hooks/redux';
+import { registerUser, clearError } from '../../store/slices/authSlice';
+import { RegisterFormData } from '../../types';
 
 // Кастомный селект компонент
 interface CustomSelectProps {
@@ -86,12 +87,24 @@ interface FormData {
 
 const RegisterPage: React.FC = () => {
   const navigate = useNavigate();
-  const { register } = useAuth();
+  const dispatch = useAppDispatch();
+  const { isLoading, error, isAuthenticated } = useAppSelector((state) => state.auth);
   const [step, setStep] = useState<Step>('role');
   const [selectedRole, setSelectedRole] = useState<UserType | null>(null);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Redirect if already authenticated
+  React.useEffect(() => {
+    if (isAuthenticated) {
+      navigate('/dashboard');
+    }
+  }, [isAuthenticated, navigate]);
+
+  // Clear errors when component mounts
+  React.useEffect(() => {
+    dispatch(clearError());
+  }, [dispatch]);
   const [formData, setFormData] = useState<FormData>({
     userType: null,
     firstName: '',
@@ -224,36 +237,31 @@ const RegisterPage: React.FC = () => {
     e.preventDefault();
     
     if (validateForm()) {
-      try {
-        setIsSubmitting(true);
-        setErrors({});
-        
-        const registerData: RegisterData = {
-          userType: formData.userType!,
-          firstName: formData.firstName,
-          lastName: formData.lastName,
-          username: formData.login,
-          email: formData.email,
-          phone: formData.phone,
-          password: formData.password,
-          confirmPassword: formData.confirmPassword,
-          companyName: formData.organization || undefined,
-          organizationType: formData.organizationType || undefined,
-          activityType: formData.activity || undefined,
-          language: 'ru'
-        };
+      setErrors({});
+      
+      const registerData: RegisterFormData = {
+        userType: formData.userType!,
+        firstName: formData.firstName,
+        lastName: formData.lastName,
+        username: formData.login,
+        email: formData.email,
+        phone: formData.phone,
+        password: formData.password,
+        confirmPassword: formData.confirmPassword,
+        companyName: formData.organization || undefined,
+        organizationType: formData.organizationType || undefined,
+        activityType: formData.activity || undefined,
+        language: 'ru'
+      };
 
-        const response = await register(registerData);
-        
-        if (response.success) {
-          // Переходим к этапу показа успешной регистрации
-          setStep('verification');
-        }
-      } catch (error: any) {
-        console.error('Registration failed:', error);
-        
-        // Обработка различных типов ошибок
-        const errorMessage = error.message || 'Произошла ошибка при регистрации';
+      const result = await dispatch(registerUser(registerData));
+      
+      if (registerUser.fulfilled.match(result)) {
+        // Переходим к этапу показа успешной регистрации
+        setStep('verification');
+      } else {
+        // Обработка ошибок
+        const errorMessage = result.payload as string || 'Произошла ошибка при регистрации';
         
         if (errorMessage.includes('email already exists') || errorMessage.includes('email')) {
           setErrors(prev => ({ ...prev, email: 'Пользователь с таким email уже существует' }));
@@ -262,8 +270,6 @@ const RegisterPage: React.FC = () => {
         } else {
           setErrors(prev => ({ ...prev, general: 'Ошибка регистрации. Попробуйте снова.' }));
         }
-      } finally {
-        setIsSubmitting(false);
       }
     }
   };
@@ -476,9 +482,9 @@ const RegisterPage: React.FC = () => {
             </div>
 
             {/* Ошибки */}
-            {errors.general && (
+            {(errors.general || error) && (
               <div className="text-red-400 text-sm text-center mt-4">
-                {errors.general}
+                {errors.general || error}
               </div>
             )}
 
@@ -486,9 +492,9 @@ const RegisterPage: React.FC = () => {
             <button
               type="submit"
               className="btn-green w-full mt-8 py-3"
-              disabled={!formData.agree || isSubmitting}
+              disabled={!formData.agree || isLoading}
             >
-              {isSubmitting ? 'Регистрация...' : 'Зарегистрироваться'}
+              {isLoading ? 'Регистрация...' : 'Зарегистрироваться'}
             </button>
           </form>
         </div>
@@ -653,9 +659,9 @@ const RegisterPage: React.FC = () => {
             </div>
 
             {/* Ошибки */}
-            {errors.general && (
+            {(errors.general || error) && (
               <div className="text-red-400 text-sm text-center mt-4">
-                {errors.general}
+                {errors.general || error}
               </div>
             )}
 
@@ -663,9 +669,9 @@ const RegisterPage: React.FC = () => {
             <button
               type="submit"
               className="btn-green w-full mt-8 py-3"
-              disabled={!formData.agreeTerms || !formData.agreePrivacy || isSubmitting}
+              disabled={!formData.agreeTerms || !formData.agreePrivacy || isLoading}
             >
-              {isSubmitting ? 'Регистрация...' : 'Зарегистрироваться'}
+              {isLoading ? 'Регистрация...' : 'Зарегистрироваться'}
             </button>
           </form>
         </div>

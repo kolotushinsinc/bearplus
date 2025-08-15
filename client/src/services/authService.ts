@@ -1,9 +1,9 @@
 import axios, { AxiosResponse } from 'axios';
-import { 
-  LoginFormData, 
-  RegisterFormData, 
-  User, 
-  ApiResponse 
+import {
+  LoginFormData,
+  RegisterFormData,
+  User,
+  ApiResponse
 } from '../types';
 
 // Базовая конфигурация axios
@@ -11,33 +11,18 @@ const API_BASE_URL = 'http://localhost:5000/api';
 
 const api = axios.create({
   baseURL: API_BASE_URL,
+  withCredentials: true, // Включаем отправку cookies
+  timeout: 10000, // 10 секунд таймаут
   headers: {
     'Content-Type': 'application/json',
   },
 });
 
-// Интерцептор для добавления токена к запросам
-api.interceptors.request.use(
-  (config) => {
-    const token = localStorage.getItem('token');
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
-    return config;
-  },
-  (error) => {
-    return Promise.reject(error);
-  }
-);
-
 // Интерцептор для обработки ответов
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response?.status === 401) {
-      localStorage.removeItem('token');
-      window.location.href = '/login';
-    }
+    // Don't auto-redirect on auth errors - let components handle it
     return Promise.reject(error);
   }
 );
@@ -116,8 +101,6 @@ class AuthService {
     } catch (error: any) {
       // Игнорируем ошибки logout на сервере
       console.warn('Logout request failed:', error.message);
-    } finally {
-      localStorage.removeItem('token');
     }
   }
 
@@ -141,13 +124,13 @@ class AuthService {
 
   // Сброс пароля
   async resetPassword(
-    token: string, 
-    password: string, 
+    token: string,
+    password: string,
     confirmPassword: string
   ): Promise<{ user: User; token: string }> {
     try {
       const response: AxiosResponse<ApiResponse> = await api.put(
-        `/auth/reset-password/${token}`, 
+        `/auth/reset-password/${token}`,
         { password, confirmPassword }
       );
       
@@ -176,24 +159,6 @@ class AuthService {
         return response.data;
       } else {
         throw new Error(response.data.message || 'Email verification failed');
-      }
-    } catch (error: any) {
-      if (error.response?.data?.message) {
-        throw new Error(error.response.data.message);
-      }
-      throw new Error('Network error occurred');
-    }
-  }
-
-  // Повторная отправка письма для подтверждения email
-  async resendVerificationEmail(): Promise<ApiResponse> {
-    try {
-      const response: AxiosResponse<ApiResponse> = await api.post('/auth/resend-verification');
-      
-      if (response.data.success) {
-        return response.data;
-      } else {
-        throw new Error(response.data.message || 'Failed to resend verification email');
       }
     } catch (error: any) {
       if (error.response?.data?.message) {

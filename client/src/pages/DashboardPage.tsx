@@ -1,21 +1,23 @@
 import * as React from 'react';
-import { useAuth } from '../contexts/AuthContext';
+import { useAppDispatch, useAppSelector } from '../hooks/redux';
+import { logoutUser } from '../store/slices/authSlice';
 import { useNavigate } from 'react-router-dom';
 
 const DashboardPage: React.FC = () => {
-  const { user, logout } = useAuth();
+  const dispatch = useAppDispatch();
+  const { user, isLoading } = useAppSelector((state) => state.auth);
   const navigate = useNavigate();
 
   const handleLogout = async () => {
     try {
-      await logout();
+      await dispatch(logoutUser());
       navigate('/login');
     } catch (error) {
       console.error('Logout failed:', error);
     }
   };
 
-  if (!user) {
+  if (isLoading || !user) {
     return (
       <div className="flex-1 flex items-center justify-center py-12">
         <div className="text-white text-xl">Загрузка...</div>

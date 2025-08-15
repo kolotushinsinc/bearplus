@@ -1,64 +1,18 @@
+// Import types from the main types file
+import {
+  User,
+  ApiResponse,
+  RegisterFormData as RegisterData,
+  LoginFormData as LoginData,
+  ForgotPasswordFormData as ForgotPasswordData,
+  ResetPasswordFormData as ResetPasswordData
+} from '../types';
+
+// Re-export types for compatibility
+export type { User, ApiResponse, RegisterData, LoginData, ForgotPasswordData, ResetPasswordData };
+
 // API base URL
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
-
-// API response types
-export interface ApiResponse<T = any> {
-  success: boolean;
-  message?: string;
-  data?: T;
-  user?: User;
-  token?: string;
-  errors?: any[];
-}
-
-export interface User {
-  id: string;
-  username: string;
-  email: string;
-  firstName: string;
-  lastName: string;
-  fullName?: string;
-  userType: 'client' | 'agent';
-  companyName?: string;
-  organizationType?: 'llc' | 'jsc' | 'individual' | 'foreign' | 'other';
-  activityType?: 'freight_forwarder' | 'customs_broker' | 'transport_company' | 'logistics' | 'other';
-  phone?: string;
-  isEmailVerified: boolean;
-  isPhoneVerified?: boolean;
-  language?: 'ru' | 'en' | 'zh';
-  loyaltyDiscount?: number;
-  lastLogin?: Date;
-  createdAt?: Date;
-}
-
-export interface RegisterData {
-  userType: 'client' | 'agent';
-  firstName: string;
-  lastName: string;
-  username: string;
-  email: string;
-  phone: string;
-  password: string;
-  confirmPassword: string;
-  companyName?: string;
-  organizationType?: 'llc' | 'jsc' | 'individual' | 'foreign' | 'other';
-  activityType?: 'freight_forwarder' | 'customs_broker' | 'transport_company' | 'logistics' | 'other';
-  language?: 'ru' | 'en' | 'zh';
-}
-
-export interface LoginData {
-  email: string;
-  password: string;
-}
-
-export interface ForgotPasswordData {
-  email: string;
-}
-
-export interface ResetPasswordData {
-  password: string;
-  confirmPassword: string;
-}
 
 // HTTP client class
 class ApiClient {
