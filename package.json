@@ -1,0 +1,22 @@
+{
+  "name": "bearplus",
+  "version": "1.0.0",
+  "description": "BearPlus logistics platform",
+  "main": "index.js",
+  "scripts": {
+    "dev": "concurrently \"npm run server:dev\" \"npm run client:dev\" \"npm run crm:dev\"",
+    "server:dev": "cd server && npm run dev",
+    "client:dev": "cd client && npm start",
+    "crm:dev": "cd crm-client && npm start",
+    "build": "npm run server:build && npm run client:build && npm run crm:build",
+    "server:build": "cd server && npm run build",
+    "client:build": "cd client && npm run build",
+    "crm:build": "cd crm-client && npm run build"
+  },
+  "keywords": ["logistics", "shipping", "freight"],
+  "author": "BearPlus Team",
+  "license": "MIT",
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+}

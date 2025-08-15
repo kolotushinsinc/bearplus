@@ -1,0 +1,142 @@
+version: '3.8'
+
+services:
+  # MongoDB
+  mongodb:
+    image: mongo:7.0
+    container_name: bearplus-mongodb
+    restart: unless-stopped
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: password123
+      MONGO_INITDB_DATABASE: bearplus
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_data:/data/db
+      - ./docker/mongo-init.js:/docker-entrypoint-initdb.d/mongo-init.js:ro
+    networks:
+      - bearplus-network
+
+  # RabbitMQ
+  rabbitmq:
+    image: rabbitmq:3.12-management
+    container_name: bearplus-rabbitmq
+    restart: unless-stopped
+    environment:
+      RABBITMQ_DEFAULT_USER: admin
+      RABBITMQ_DEFAULT_PASS: password123
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    networks:
+      - bearplus-network
+
+  # Redis (для кеширования и сессий)
+  redis:
+    image: redis:7.2-alpine
+    container_name: bearplus-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - bearplus-network
+
+  # BearPlus Server
+  server:
+    build:
+      context: ./server
+      dockerfile: Dockerfile
+    container_name: bearplus-server
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      PORT: 5000
+      MONGODB_URI: mongodb://admin:password123@mongodb:27017/bearplus?authSource=admin
+      JWT_SECRET: bearplus_jwt_secret_production_2024
+      JWT_EXPIRE: 7d
+      EMAIL_HOST: smtp.gmail.com
+      EMAIL_PORT: 587
+      EMAIL_USER: ${EMAIL_USER}
+      EMAIL_PASS: ${EMAIL_PASS}
+      RABBITMQ_URL: amqp://admin:password123@rabbitmq:5672
+      CLIENT_URL: http://localhost:3000
+      CRM_URL: http://localhost:3001
+      REDIS_URL: redis://redis:6379
+    ports:
+      - "5000:5000"
+    depends_on:
+      - mongodb
+      - rabbitmq
+      - redis
+    volumes:
+      - ./server/uploads:/app/uploads
+    networks:
+      - bearplus-network
+
+  # BearPlus Client
+  client:
+    build:
+      context: ./client
+      dockerfile: Dockerfile
+    container_name: bearplus-client
+    restart: unless-stopped
+    environment:
+      REACT_APP_API_URL: http://localhost:5000/api
+    ports:
+      - "3000:3000"
+    depends_on:
+      - server
+    networks:
+      - bearplus-network
+
+  # BearPlus CRM
+  crm-client:
+    build:
+      context: ./crm-client
+      dockerfile: Dockerfile
+    container_name: bearplus-crm
+    restart: unless-stopped
+    environment:
+      REACT_APP_API_URL: http://localhost:5000/api
+    ports:
+      - "3001:3000"
+    depends_on:
+      - server
+    networks:
+      - bearplus-network
+
+  # Nginx (reverse proxy и балансировщик нагрузки)
+  nginx:
+    image: nginx:1.25-alpine
+    container_name: bearplus-nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./docker/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./docker/nginx/conf.d:/etc/nginx/conf.d:ro
+      - ./docker/ssl:/etc/nginx/ssl:ro
+    depends_on:
+      - server
+      - client
+      - crm-client
+    networks:
+      - bearplus-network
+
+volumes:
+  mongodb_data:
+    driver: local
+  rabbitmq_data:
+    driver: local
+  redis_data:
+    driver: local
+
+networks:
+  bearplus-network:
+    driver: bridge

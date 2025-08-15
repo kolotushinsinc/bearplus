@@ -1,0 +1,225 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+@layer base {
+  * {
+    @apply border-gray-600;
+  }
+  
+  body {
+    @apply bg-bearplus-bg-dark text-white font-sans antialiased;
+    margin: 0;
+    padding: 0;
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+}
+
+@layer components {
+  .btn-primary {
+    @apply bg-bearplus-green hover:bg-bearplus-green/90 text-black font-semibold transition-all duration-200 transform hover:scale-[1.02] active:scale-[0.98] focus:outline-none;
+    border: none !important;
+    border-radius: 32px !important;
+    padding: 24px 48px !important;
+    font-size: 18px !important;
+    height: 80px !important;
+    width: 100% !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+  }
+
+  .btn-primary:focus {
+    box-shadow: 0 0 0 2px rgba(0, 200, 150, 0.5) !important;
+  }
+
+  .btn-primary:disabled {
+    opacity: 0.6 !important;
+    cursor: not-allowed !important;
+    transform: none !important;
+  }
+
+  .btn-secondary {
+    @apply bg-transparent border border-bearplus-green text-bearplus-green hover:bg-bearplus-green hover:text-white font-medium py-3 px-6 rounded-lg transition-all duration-200 transform hover:scale-[1.02] active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-bearplus-green focus:ring-opacity-50;
+  }
+
+  .btn-green {
+    @apply bg-bearplus-green hover:bg-bearplus-green/90 text-black font-medium py-2 px-4 rounded transition-all duration-200 transform hover:scale-[1.02] active:scale-[0.98] focus:outline-none;
+  }
+
+  .btn-green:focus {
+    box-shadow: 0 0 0 2px rgba(0, 200, 150, 0.5);
+  }
+
+  .input-field {
+    background-color: #1A1A1A !important;
+    @apply text-white placeholder-bearplus-placeholder rounded px-4 py-3 focus:outline-none focus:ring-0 transition-all duration-200;
+    border: 1px solid #333434;
+  }
+
+  .input-field:focus {
+    border: 1px solid #0DAA79;
+  }
+
+  .input-field.error {
+    border: 1px solid #ef4444 !important;
+  }
+
+  .input-field.error:focus {
+    border: 1px solid #ef4444 !important;
+  }
+
+  .card {
+    @apply bg-bearplus-card-dark rounded-xl p-6 shadow-lg border border-gray-700/50 backdrop-blur-sm;
+  }
+
+  .form-container {
+    @apply max-w-md mx-auto bg-transparent rounded-xl p-8 shadow-2xl animate-slide-up;
+  }
+
+  .logo-text {
+    @apply text-2xl font-bold text-white;
+  }
+
+  .nav-link {
+    @apply text-gray-300 hover:text-bearplus-green transition-colors duration-200 font-medium;
+  }
+
+  .checkbox-custom {
+    @apply appearance-none h-5 w-5 rounded bg-transparent checked:bg-bearplus-green focus:outline-none focus:ring-0 transition-all duration-200;
+    border: 1px solid #333434;
+  }
+
+  .checkbox-custom:checked {
+    border: 1px solid #0DAA79;
+  }
+
+  .checkbox-custom:focus {
+    border: 1px solid #0DAA79;
+  }
+
+  .radio-tabs {
+    @apply flex bg-bearplus-card-dark rounded-lg p-1 gap-1;
+  }
+
+  .radio-tab {
+    @apply flex-1 py-2 px-4 text-center rounded-md transition-all duration-200 cursor-pointer font-medium;
+  }
+
+  .radio-tab.active {
+    @apply bg-bearplus-green text-white;
+  }
+
+  .radio-tab.inactive {
+    @apply text-gray-400 hover:text-white hover:bg-gray-700/50;
+  }
+
+  .select-field {
+    @apply bg-bearplus-card-dark text-white rounded-lg px-4 py-3 focus:outline-none focus:ring-0 transition-all duration-200 appearance-none cursor-pointer;
+    border: 1px solid #333434;
+  }
+
+  .select-field:focus {
+    border: 1px solid #0DAA79;
+  }
+
+  .verification-input {
+    @apply text-center rounded-lg text-white font-semibold text-lg focus:outline-none focus:ring-0 transition-all duration-200;
+    background-color: #1A1A1A !important;
+    border: 1px solid #333434;
+    width: 56px;
+    height: 56px;
+  }
+
+  .verification-input.error {
+    border: 1px solid #ef4444 !important;
+  }
+
+  .verification-input.error:focus {
+    border: 1px solid #ef4444 !important;
+  }
+
+  .verification-input:focus {
+    border: 1px solid #0DAA79;
+  }
+}
+
+@layer utilities {
+  .text-gradient {
+    @apply bg-gradient-to-r from-bearplus-green to-emerald-400 bg-clip-text text-transparent;
+  }
+
+  .bg-gradient-dark {
+    background: radial-gradient(ellipse at center top, #0f2419 0%, #0a1811 30%, #051209 60%, #000000 100%);
+  }
+
+  .shadow-glow {
+    box-shadow: 0 0 20px rgba(0, 200, 150, 0.3);
+  }
+
+  .shadow-glow-sm {
+    box-shadow: 0 0 10px rgba(0, 200, 150, 0.2);
+  }
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #1a2e20;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #00C896;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #00a07a;
+}
+
+/* Loading spinner animation */
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.spinner {
+  animation: spin 1s linear infinite;
+}
+
+/* Focus visible improvements */
+.focus-visible:focus-visible {
+  @apply ring-2 ring-bearplus-green ring-opacity-50 ring-offset-2 ring-offset-bearplus-bg-dark outline-none;
+}
+
+/* Dropdown animations */
+.dropdown-enter {
+  opacity: 0;
+  transform: scale(0.95) translateY(-10px);
+}
+
+.dropdown-enter-active {
+  opacity: 1;
+  transform: scale(1) translateY(0);
+  transition: all 200ms ease-out;
+}
+
+.dropdown-exit {
+  opacity: 1;
+  transform: scale(1) translateY(0);
+}
+
+.dropdown-exit-active {
+  opacity: 0;
+  transform: scale(0.95) translateY(-10px);
+  transition: all 150ms ease-in;
+}
