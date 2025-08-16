@@ -82,12 +82,9 @@ const ForgotPasswordPage: React.FC = () => {
 
   return (
     <div className="flex-1 flex items-center justify-center py-12">
-      <div className="form-container animate-fade-in">
+      <div className="w-full max-w-md mx-auto px-4">
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-white mb-2">Восстановление пароля</h1>
-          <p className="text-gray-400">
-            Введите ваш email и мы отправим инструкции по восстановлению пароля
-          </p>
+          <h1 className="text-2xl font-bold text-white mb-8">Восстановление пароля</h1>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
@@ -98,7 +95,7 @@ const ForgotPasswordPage: React.FC = () => {
               name="emailOrPhone"
               value={emailOrPhone}
               onChange={handleInputChange}
-              className={`input-field w-full ${errors.emailOrPhone ? 'error' : ''}`}
+              className={`w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded text-white placeholder-gray-400 focus:border-bearplus-green focus:outline-none transition-colors ${errors.emailOrPhone ? 'border-red-400' : ''}`}
               placeholder="E-mail или телефон"
               required
             />
@@ -114,33 +111,12 @@ const ForgotPasswordPage: React.FC = () => {
 
           <button
             type="submit"
-            className="btn-green w-full"
+            className="w-full bg-bearplus-green hover:bg-green-500 text-black font-medium py-3 px-6 rounded transition-colors"
             disabled={isSubmitting}
           >
             {isSubmitting ? 'Отправка...' : 'Получить код'}
           </button>
-
-          <div className="text-center">
-            <Link 
-              to="/login" 
-              className="text-bearplus-green hover:text-bearplus-green/80 transition-colors font-medium"
-            >
-              ← Вернуться к входу
-            </Link>
-          </div>
         </form>
-
-        <div className="mt-8 pt-6 border-t border-gray-700">
-          <div className="text-center">
-            <span className="text-gray-400">Нет аккаунта? </span>
-            <Link 
-              to="/register" 
-              className="text-bearplus-green hover:text-bearplus-green/80 transition-colors font-medium"
-            >
-              Зарегистрироваться
-            </Link>
-          </div>
-        </div>
       </div>
     </div>
   );

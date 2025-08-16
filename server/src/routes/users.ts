@@ -2,40 +2,41 @@ import express from 'express';
 import { authenticateToken, authorize, checkOwnership } from '../middleware/auth';
 import { validateUpdateProfile, validateChangePassword } from '../validators/authValidators';
 
+// Import actual controller functions
+const {
+  getUserProfile,
+  updateUserProfile,
+  changePassword,
+  deactivateAccount,
+  getAllUsers,
+  updateLoyaltyDiscount,
+} = require('../controllers/userController');
+
 const router = express.Router();
 
-// Заглушки для контроллеров пользователей (будут созданы позже)
-const getUserProfile = (req: any, res: any) => {
-  res.json({ message: 'Get user profile - TO BE IMPLEMENTED' });
-};
+// @route   GET /api/users/profile
+// @desc    Получение собственного профиля пользователя
+// @access  Private
+router.get('/profile', authenticateToken, (req: any, res: any, next: any) => {
+  req.params.id = req.user.id;
+  getUserProfile(req, res, next);
+});
 
-const updateUserProfile = (req: any, res: any) => {
-  res.json({ message: 'Update user profile - TO BE IMPLEMENTED' });
-};
-
-const changePassword = (req: any, res: any) => {
-  res.json({ message: 'Change password - TO BE IMPLEMENTED' });
-};
-
-const deactivateAccount = (req: any, res: any) => {
-  res.json({ message: 'Deactivate account - TO BE IMPLEMENTED' });
-};
-
-const getAllUsers = (req: any, res: any) => {
-  res.json({ message: 'Get all users - TO BE IMPLEMENTED' });
-};
-
-const updateLoyaltyDiscount = (req: any, res: any) => {
-  res.json({ message: 'Update loyalty discount - TO BE IMPLEMENTED' });
-};
+// @route   PUT /api/users/profile
+// @desc    Обновление собственного профиля пользователя
+// @access  Private
+router.put('/profile', authenticateToken, validateUpdateProfile, (req: any, res: any, next: any) => {
+  req.params.id = req.user.id;
+  updateUserProfile(req, res, next);
+});
 
 // @route   GET /api/users/profile/:id
-// @desc    Получение профиля пользователя
+// @desc    Получение профиля пользователя по ID
 // @access  Private
 router.get('/profile/:id', authenticateToken, checkOwnership, getUserProfile);
 
 // @route   PUT /api/users/profile/:id
-// @desc    Обновление профиля пользователя
+// @desc    Обновление профиля пользователя по ID
 // @access  Private
 router.put('/profile/:id', authenticateToken, checkOwnership, validateUpdateProfile, updateUserProfile);
 

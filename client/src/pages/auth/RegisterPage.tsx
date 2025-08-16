@@ -282,27 +282,31 @@ const RegisterPage: React.FC = () => {
           <h1 className="text-4xl font-bold text-white mb-4">Регистрация</h1>
           <p className="text-gray-400 mb-12">Выберите, в роли кого вы хотите зарегистрироваться</p>
           
-          <div className="grid grid-cols-2 gap-8 mb-12">
+          <div className="grid grid-cols-2 gap-6 mb-12">
             <button
               onClick={() => handleRoleSelect('agent')}
-              className={`p-8 rounded-xl border-2 transition-all duration-200 ${
+              className={`py-6 px-8 border border-gray-600 transition-all duration-200 ${
                 selectedRole === 'agent'
-                  ? 'border-bearplus-green bg-bearplus-green/10'
+                  ? 'border-bearplus-green'
                   : 'border-gray-600 hover:border-gray-500'
               }`}
             >
-              <h3 className="text-2xl font-semibold text-white mb-2">Агент</h3>
+              <h3 className={`text-xl font-medium ${
+                selectedRole === 'agent' ? 'text-bearplus-green' : 'text-gray-400'
+              }`}>Агент</h3>
             </button>
             
             <button
               onClick={() => handleRoleSelect('client')}
-              className={`p-8 rounded-xl border-2 transition-all duration-200 ${
+              className={`py-6 px-8 border border-gray-600 transition-all duration-200 ${
                 selectedRole === 'client'
-                  ? 'border-bearplus-green bg-bearplus-green/10'
+                  ? 'border-bearplus-green'
                   : 'border-gray-600 hover:border-gray-500'
               }`}
             >
-              <h3 className="text-2xl font-semibold text-white mb-2">Клиент</h3>
+              <h3 className={`text-xl font-medium ${
+                selectedRole === 'client' ? 'text-bearplus-green' : 'text-gray-400'
+              }`}>Клиент</h3>
             </button>
           </div>
           

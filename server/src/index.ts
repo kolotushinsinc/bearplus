@@ -9,6 +9,15 @@ import dotenv from 'dotenv';
 import connectDB from './config/database';
 import authRoutes from './routes/auth';
 import userRoutes from './routes/users';
+import shippingRoutes from './routes/shipping';
+import feedbackRoutes from './routes/feedback';
+import ordersRoutes from './routes/orders';
+import documentsRoutes from './routes/documents';
+import messagesRoutes from './routes/messages';
+import ratesRoutes from './routes/rates';
+import marginsRoutes from './routes/margins';
+import loyaltyRoutes from './routes/loyalty';
+import currencyRoutes from './routes/currency';
 import errorHandler from './middleware/errorHandler';
 
 // Загрузка переменных окружения
@@ -49,6 +58,15 @@ app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 // Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
+app.use('/api/shipping', shippingRoutes);
+app.use('/api/feedback', feedbackRoutes);
+app.use('/api/orders', ordersRoutes);
+app.use('/api/documents', documentsRoutes);
+app.use('/api/messages', messagesRoutes);
+app.use('/api/rates', ratesRoutes);
+app.use('/api/margins', marginsRoutes);
+app.use('/api/loyalty', loyaltyRoutes);
+app.use('/api/currency', currencyRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {
