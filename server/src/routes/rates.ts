@@ -7,9 +7,9 @@ import {
   deleteRate,
   uploadExcelRates,
   exportRates,
-  downloadTemplate,
-  ratesUploadMiddleware
+  downloadTemplate
 } from '../controllers/ratesController';
+import { uploadExcel, handleUploadError } from '../middleware/upload';
 
 const router = express.Router();
 
@@ -36,7 +36,13 @@ router.delete('/:id', authenticateToken, authorize('agent'), deleteRate);
 // @route   POST /api/rates/upload
 // @desc    Загрузка ставок из Excel файла
 // @access  Private (только агенты)
-router.post('/upload', authenticateToken, authorize('agent'), ratesUploadMiddleware, uploadExcelRates);
+router.post('/upload',
+  authenticateToken,
+  authorize('agent'),
+  uploadExcel.single('file'),
+  handleUploadError,
+  uploadExcelRates
+);
 
 // @route   GET /api/rates/export
 // @desc    Экспорт ставок в Excel

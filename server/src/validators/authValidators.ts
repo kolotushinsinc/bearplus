@@ -179,3 +179,11 @@ export const validateChangePassword: ValidationChain[] = [
       return true;
     }),
 ];
+
+// Валидация повторной отправки email верификации
+export const validateResendVerification: ValidationChain[] = [
+  body('email')
+    .isEmail()
+    .normalizeEmail()
+    .withMessage('Please provide a valid email'),
+];

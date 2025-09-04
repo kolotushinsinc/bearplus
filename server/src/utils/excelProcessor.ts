@@ -1,5 +1,6 @@
 import fs from 'fs';
 import path from 'path';
+import * as XLSX from 'xlsx';
 
 // Интерфейсы для данных Excel
 export interface ExcelRateData {
@@ -47,48 +48,120 @@ export const processExcelFile = async (filePath: string): Promise<ExcelProcessRe
       };
     }
 
-    // TODO: Установить и использовать библиотеку xlsx
-    // const XLSX = require('xlsx');
-    // const workbook = XLSX.readFile(filePath);
+    // Читаем Excel файл
+    const workbook = XLSX.readFile(filePath);
+    const sheetName = workbook.SheetNames[0];
+    const worksheet = workbook.Sheets[sheetName];
     
-    // Временная mock-реализация
-    const mockData: ExcelRateData[] = [
-      {
-        origin: 'Москва',
-        destination: 'Пекин',
-        serviceType: 'freight',
-        containerType: '20GP',
-        weight: 1000,
-        volume: 33,
-        rate: 2500,
-        currency: 'USD',
-        validFrom: '2024-01-01',
-        validTo: '2024-12-31',
-        transitTime: 14,
-        notes: 'Стандартная ставка'
-      },
-      {
-        origin: 'Санкт-Петербург',
-        destination: 'Шанхай',
-        serviceType: 'freight',
-        containerType: '40GP',
-        weight: 2000,
-        volume: 67,
-        rate: 4500,
-        currency: 'USD',
-        validFrom: '2024-01-01',
-        validTo: '2024-12-31',
-        transitTime: 16,
-        notes: 'Экспресс доставка'
+    // Конвертируем в JSON
+    const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+    
+    if (jsonData.length <= 1) {
+      return {
+        success: false,
+        error: 'Файл не содержит данных или содержит только заголовки'
+      };
+    }
+
+    // Получаем заголовки
+    const headers = jsonData[0] as string[];
+    const dataRows = jsonData.slice(1);
+
+    // Маппинг заголовков
+    const headerMap: { [key: string]: string } = {
+      'откуда': 'origin',
+      'куда': 'destination',
+      'тип услуги': 'serviceType',
+      'тип контейнера': 'containerType',
+      'вес (кг)': 'weight',
+      'объем (м³)': 'volume',
+      'ставка': 'rate',
+      'валюта': 'currency',
+      'действует с': 'validFrom',
+      'действует до': 'validTo',
+      'время доставки (дни)': 'transitTime',
+      'примечания': 'notes'
+    };
+
+    const data: ExcelRateData[] = [];
+    const errors: string[] = [];
+
+    (dataRows as any[][]).forEach((row: any[], index: number) => {
+      const rowNum = index + 2; // +2 because index starts from 0 and we skip header
+      
+      try {
+        const rateData: any = {};
+        
+        headers.forEach((header, colIndex) => {
+          const normalizedHeader = header.toLowerCase().trim();
+          const fieldName = headerMap[normalizedHeader];
+          
+          if (fieldName && row[colIndex] !== undefined && row[colIndex] !== null) {
+            let value = row[colIndex];
+            
+            // Обработка разных типов данных
+            if (fieldName === 'weight' || fieldName === 'volume' || fieldName === 'rate' || fieldName === 'transitTime') {
+              value = Number(value);
+              if (isNaN(value)) {
+                errors.push(`Строка ${rowNum}: некорректное числовое значение в поле "${header}"`);
+                return;
+              }
+            } else if (fieldName === 'validFrom' || fieldName === 'validTo') {
+              // Обработка дат Excel
+              if (typeof value === 'number') {
+                value = XLSX.SSF.parse_date_code(value);
+                value = new Date(value.y, value.m - 1, value.d).toISOString().split('T')[0];
+              } else if (typeof value === 'string') {
+                const date = new Date(value);
+                if (isNaN(date.getTime())) {
+                  errors.push(`Строка ${rowNum}: некорректная дата в поле "${header}"`);
+                  return;
+                }
+                value = date.toISOString().split('T')[0];
+              }
+            } else if (typeof value === 'string') {
+              value = value.toString().trim();
+            }
+            
+            rateData[fieldName] = value;
+          }
+        });
+
+        // Валидация обязательных полей
+        const requiredFields = ['origin', 'destination', 'serviceType', 'rate', 'currency', 'validFrom', 'validTo'];
+        const missingFields = requiredFields.filter(field => !rateData[field]);
+        
+        if (missingFields.length > 0) {
+          errors.push(`Строка ${rowNum}: отсутствуют обязательные поля: ${missingFields.join(', ')}`);
+          return;
+        }
+
+        // Проверка типа услуги
+        if (!['freight', 'railway', 'auto', 'container'].includes(rateData.serviceType)) {
+          errors.push(`Строка ${rowNum}: некорректный тип услуги "${rateData.serviceType}"`);
+          return;
+        }
+
+        // Проверка валюты
+        if (!['USD', 'EUR', 'RUB', 'CNY'].includes(rateData.currency.toUpperCase())) {
+          errors.push(`Строка ${rowNum}: некорректная валюта "${rateData.currency}"`);
+          return;
+        }
+
+        rateData.currency = rateData.currency.toUpperCase();
+        data.push(rateData as ExcelRateData);
+
+      } catch (error) {
+        errors.push(`Строка ${rowNum}: ошибка обработки - ${error instanceof Error ? error.message : 'неизвестная ошибка'}`);
       }
-    ];
+    });
 
     return {
       success: true,
-      data: mockData,
-      totalRows: mockData.length,
-      validRows: mockData.length,
-      errors: []
+      data,
+      totalRows: dataRows.length,
+      validRows: data.length,
+      errors
     };
 
   } catch (error) {
@@ -103,14 +176,11 @@ export const processExcelFile = async (filePath: string): Promise<ExcelProcessRe
 // Функция для генерации Excel шаблона
 export const generateExcelTemplate = (): Buffer => {
   try {
-    // TODO: Установить и использовать библиотеку xlsx
-    // const XLSX = require('xlsx');
-    
     // Структура шаблона
     const templateData = [
       {
         'Откуда': 'Москва',
-        'Куда': 'Пекин', 
+        'Куда': 'Пекин',
         'Тип услуги': 'freight',
         'Тип контейнера': '20GP',
         'Вес (кг)': 1000,
@@ -124,12 +194,19 @@ export const generateExcelTemplate = (): Buffer => {
       }
     ];
 
-    // Временная реализация - возвращаем пустой буфер
-    // В реальной реализации здесь будет создание Excel файла
-    const csvContent = Object.keys(templateData[0]).join(',') + '\n' + 
-      Object.values(templateData[0]).join(',');
+    // Создаем новую рабочую книгу
+    const workbook = XLSX.utils.book_new();
     
-    return Buffer.from(csvContent, 'utf-8');
+    // Создаем рабочий лист
+    const worksheet = XLSX.utils.json_to_sheet(templateData);
+    
+    // Добавляем лист в книгу
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Шаблон ставок');
+    
+    // Конвертируем в буфер
+    const excelBuffer = XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' });
+    
+    return excelBuffer;
 
   } catch (error) {
     console.error('Template generation error:', error);
@@ -140,39 +217,39 @@ export const generateExcelTemplate = (): Buffer => {
 // Функция для экспорта данных в Excel
 export const exportToExcel = (data: ExcelRateData[]): Buffer => {
   try {
-    // TODO: Установить и использовать библиотеку xlsx
-    // const XLSX = require('xlsx');
-    
-    // Временная реализация - возвращаем CSV
     if (!data.length) {
       throw new Error('Нет данных для экспорта');
     }
 
-    const headers = [
-      'Откуда', 'Куда', 'Тип услуги', 'Тип контейнера', 
-      'Вес (кг)', 'Объем (м³)', 'Ставка', 'Валюта',
-      'Действует с', 'Действует до', 'Время доставки (дни)', 'Примечания'
-    ];
+    // Преобразуем данные в формат для Excel
+    const exportData = data.map(row => ({
+      'Откуда': row.origin,
+      'Куда': row.destination,
+      'Тип услуги': row.serviceType,
+      'Тип контейнера': row.containerType || '',
+      'Вес (кг)': row.weight || '',
+      'Объем (м³)': row.volume || '',
+      'Ставка': row.rate,
+      'Валюта': row.currency,
+      'Действует с': row.validFrom,
+      'Действует до': row.validTo,
+      'Время доставки (дни)': row.transitTime || '',
+      'Примечания': row.notes || ''
+    }));
 
-    const csvRows = [
-      headers.join(','),
-      ...data.map(row => [
-        row.origin,
-        row.destination,
-        row.serviceType,
-        row.containerType || '',
-        row.weight || '',
-        row.volume || '',
-        row.rate,
-        row.currency,
-        row.validFrom,
-        row.validTo,
-        row.transitTime || '',
-        row.notes || ''
-      ].join(','))
-    ];
-
-    return Buffer.from(csvRows.join('\n'), 'utf-8');
+    // Создаем новую рабочую книгу
+    const workbook = XLSX.utils.book_new();
+    
+    // Создаем рабочий лист
+    const worksheet = XLSX.utils.json_to_sheet(exportData);
+    
+    // Добавляем лист в книгу
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Экспорт ставок');
+    
+    // Конвертируем в буфер
+    const excelBuffer = XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' });
+    
+    return excelBuffer;
 
   } catch (error) {
     console.error('Export error:', error);

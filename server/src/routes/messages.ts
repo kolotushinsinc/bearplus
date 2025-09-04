@@ -1,4 +1,5 @@
 import express from 'express';
+import { authenticateToken } from '../middleware/auth';
 import {
   getChats,
   getChatMessages,
@@ -8,38 +9,39 @@ import {
   closeChat
 } from '../controllers/messagesController';
 
-import { authenticateToken } from '../middleware/auth';
-
 const router = express.Router();
+
+// All routes require authentication
+router.use(authenticateToken);
 
 // @route   GET /api/messages/chats
 // @desc    Получение списка чатов пользователя
 // @access  Private
-router.get('/chats', authenticateToken, getChats);
+router.get('/chats', getChats);
 
 // @route   POST /api/messages/chats
 // @desc    Создание нового чата
 // @access  Private
-router.post('/chats', authenticateToken, createChat);
+router.post('/chats', createChat);
 
 // @route   GET /api/messages/chats/:chatId/messages
-// @desc    Получение сообщений в чате
+// @desc    Получение сообщений чата
 // @access  Private
-router.get('/chats/:chatId/messages', authenticateToken, getChatMessages);
+router.get('/chats/:chatId/messages', getChatMessages);
 
 // @route   POST /api/messages/chats/:chatId/messages
 // @desc    Отправка сообщения в чат
 // @access  Private
-router.post('/chats/:chatId/messages', authenticateToken, sendMessage);
+router.post('/chats/:chatId/messages', sendMessage);
 
-// @route   PUT /api/messages/chats/:chatId/read
-// @desc    Отметка сообщений как прочитанных
+// @route   POST /api/messages/chats/:chatId/read
+// @desc    Отметить сообщения как прочитанные
 // @access  Private
-router.put('/chats/:chatId/read', authenticateToken, markMessagesAsRead);
+router.post('/chats/:chatId/read', markMessagesAsRead);
 
 // @route   PUT /api/messages/chats/:chatId/close
-// @desc    Закрытие чата
+// @desc    Закрыть чат
 // @access  Private
-router.put('/chats/:chatId/close', authenticateToken, closeChat);
+router.put('/chats/:chatId/close', closeChat);
 
 export default router;

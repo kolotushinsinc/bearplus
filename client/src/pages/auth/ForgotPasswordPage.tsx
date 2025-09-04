@@ -1,122 +1,139 @@
-import * as React from 'react';
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { authApi, ForgotPasswordData } from '../../services/api';
+import { apiService } from '../../services/apiService';
 
 const ForgotPasswordPage: React.FC = () => {
-  const [emailOrPhone, setEmailOrPhone] = useState('');
-  const [errors, setErrors] = useState<{ [key: string]: string }>({});
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isSuccess, setIsSuccess] = useState(false);
   const navigate = useNavigate();
+  const [email, setEmail] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState('');
 
-  const validateForm = () => {
-    const newErrors: { [key: string]: string } = {};
-
-    if (!emailOrPhone.trim()) {
-      newErrors.emailOrPhone = 'Поле обязательно для заполнения';
-    } else {
-      // Simple validation for email or phone
-      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      const phoneRegex = /^[\+]?[0-9]{10,15}$/;
-      
-      if (!emailRegex.test(emailOrPhone) && !phoneRegex.test(emailOrPhone.replace(/\s/g, ''))) {
-        newErrors.emailOrPhone = 'Введите корректный email или номер телефона';
-      }
-    }
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
+  const validateEmail = (email: string): boolean => {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (validateForm()) {
-      try {
-        setIsSubmitting(true);
-        setErrors({});
-        
-        const forgotPasswordData: ForgotPasswordData = {
-          email: emailOrPhone // В API используется email
-        };
+    if (!email.trim()) {
+      setError('Email обязателен для заполнения');
+      return;
+    }
 
-        const response = await authApi.forgotPassword(forgotPasswordData);
-        
-        if (response.success) {
-          setIsSuccess(true);
-        }
-      } catch (error: any) {
-        console.error('Forgot password failed:', error);
-        
-        const errorMessage = error.message || 'Произошла ошибка';
-        
-        if (errorMessage.includes('User not found') || errorMessage.includes('not found')) {
-          setErrors(prev => ({
-            ...prev,
-            emailOrPhone: 'Пользователь с таким email не найден'
-          }));
-        } else {
-          setErrors(prev => ({
-            ...prev,
-            general: 'Ошибка отправки. Попробуйте снова.'
-          }));
-        }
-      } finally {
-        setIsSubmitting(false);
+    if (!validateEmail(email)) {
+      setError('Неверный формат email');
+      return;
+    }
+
+    setIsLoading(true);
+    setError('');
+
+    try {
+      const response = await apiService.passwordReset.requestCode(email);
+      
+      if (response.success) {
+        // Переходим к странице ввода кода
+        navigate(`/auth/verify-reset-code?email=${encodeURIComponent(email)}`);
+      } else {
+        setError(response.message || 'Произошла ошибка. Попробуйте позже.');
       }
+    } catch (error: any) {
+      console.error('Forgot password error:', error);
+      setError('Произошла ошибка. Попробуйте позже.');
+    } finally {
+      setIsLoading(false);
     }
   };
-
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setEmailOrPhone(e.target.value);
-    // Clear errors when user starts typing
-    if (errors.emailOrPhone) {
-      setErrors(prev => ({
-        ...prev,
-        emailOrPhone: ''
-      }));
-    }
-  };
-
 
   return (
-    <div className="flex-1 flex items-center justify-center py-12">
-      <div className="w-full max-w-md mx-auto px-4">
+    <div className="min-h-screen bg-tech-gradient flex items-center justify-center p-4">
+      <div className="form-container w-full max-w-md animate-fade-in">
         <div className="text-center mb-8">
-          <h1 className="text-2xl font-bold text-white mb-8">Восстановление пароля</h1>
+          <div className="flex items-center justify-center gap-3 mb-6">
+            <div className="p-3 bg-tech-primary/10 rounded-xl border border-tech-primary/20">
+              <span className="text-3xl">🔑</span>
+            </div>
+            <h1 className="logo-text text-gradient">BearPlus</h1>
+          </div>
+          <h2 className="text-tech-title mb-3">Забыли пароль?</h2>
+          <p className="text-tech-caption">
+            Введите ваш email адрес и мы отправим 4-значный код для восстановления пароля
+          </p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
-          <div>
+          {error && (
+            <div className="alert alert-error">
+              <span className="text-lg">❌</span>
+              <span>{error}</span>
+            </div>
+          )}
+
+          <div className="form-group">
+            <label htmlFor="email" className="form-label">
+              📧 Email адрес
+            </label>
             <input
-              type="text"
-              id="emailOrPhone"
-              name="emailOrPhone"
-              value={emailOrPhone}
-              onChange={handleInputChange}
-              className={`w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded text-white placeholder-gray-400 focus:border-bearplus-green focus:outline-none transition-colors ${errors.emailOrPhone ? 'border-red-400' : ''}`}
-              placeholder="E-mail или телефон"
+              id="email"
+              type="email"
+              value={email}
+              onChange={(e) => {
+                setEmail(e.target.value);
+                if (error) setError(''); // Очищаем ошибку при вводе
+              }}
+              className={`input-field ${error ? 'error' : ''}`}
+              placeholder="your@email.com"
+              disabled={isLoading}
               required
             />
-            {errors.emailOrPhone && (
-              <div className="text-red-400 text-sm mt-1">{errors.emailOrPhone}</div>
-            )}
           </div>
-
-          {/* Общие ошибки */}
-          {errors.general && (
-            <div className="text-red-400 text-sm text-center">{errors.general}</div>
-          )}
 
           <button
             type="submit"
-            className="w-full bg-bearplus-green hover:bg-green-500 text-black font-medium py-3 px-6 rounded transition-colors"
-            disabled={isSubmitting}
+            className="btn-primary w-full relative"
+            disabled={isLoading || !email.trim()}
           >
-            {isSubmitting ? 'Отправка...' : 'Получить код'}
+            {isLoading && (
+              <div className="absolute inset-0 flex items-center justify-center">
+                <div className="w-5 h-5 border-2 border-tech-bg border-t-transparent rounded-full animate-spin"></div>
+              </div>
+            )}
+            <span className={isLoading ? 'opacity-0' : 'opacity-100'}>
+              📤 Отправить код
+            </span>
           </button>
+
+          <div className="text-center space-y-4">
+            <p className="text-tech-caption">
+              Вспомнили пароль?{' '}
+              <Link to="/auth/login" className="text-tech-primary hover:text-tech-accent transition-colors font-medium">
+                Войти в аккаунт
+              </Link>
+            </p>
+            <p className="text-tech-caption">
+              Нет аккаунта?{' '}
+              <Link to="/auth/register" className="text-tech-primary hover:text-tech-accent transition-colors font-medium">
+                Зарегистрироваться
+              </Link>
+            </p>
+          </div>
         </form>
+
+        {/* Security Info */}
+        <div className="card mt-8 bg-tech-surface border-tech-border-light">
+          <div className="flex items-start gap-3">
+            <div className="p-2 bg-tech-info/10 rounded-lg border border-tech-info/20">
+              <span className="text-sm">🔒</span>
+            </div>
+            <div>
+              <h3 className="text-tech-caption font-medium mb-2">Безопасность</h3>
+              <p className="text-tech-mono text-xs">
+                Код будет действителен в течение 10 минут. 
+                По соображениям безопасности мы не сообщаем, зарегистрирован ли email в системе.
+              </p>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );

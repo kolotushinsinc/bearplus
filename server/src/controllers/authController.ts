@@ -3,7 +3,7 @@ import crypto from 'crypto';
 import { Response, NextFunction } from 'express';
 import { validationResult } from 'express-validator';
 import User from '../models/User';
-import { sendEmail, getVerificationEmailTemplate, getPasswordResetEmailTemplate } from '../utils/email';
+import { sendEmail, getVerificationEmailTemplate, generatePasswordResetCodeEmail } from '../utils/email';
 import { 
   AuthRequest, 
   RegisterRequestBody, 
@@ -340,7 +340,7 @@ export const verifyEmail = async (req: AuthRequest, res: Response, next: NextFun
   }
 };
 
-// @desc    Забыли пароль
+// @desc    Забыли пароль - отправка 4-значного кода
 // @route   POST /api/auth/forgot-password
 // @access  Public
 export const forgotPassword = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
@@ -357,24 +357,29 @@ export const forgotPassword = async (req: AuthRequest, res: Response, next: Next
       return;
     }
 
-    // Генерация токена сброса
-    const resetToken = crypto.randomBytes(20).toString('hex');
+    // Генерация 4-значного кода
+    const resetCode = Math.floor(1000 + Math.random() * 9000).toString();
 
     user.passwordResetToken = crypto
       .createHash('sha256')
-      .update(resetToken)
+      .update(resetCode)
       .digest('hex');
-    user.passwordResetExpires = new Date(Date.now() + 10 * 60 * 1000); // 10 минут
+    user.passwordResetExpires = new Date(Date.now() + 30 * 60 * 1000); // 30 минут
 
     await user.save({ validateBeforeSave: false });
 
-    // Отправка email
+    // Отправка email с кодом
     try {
-      const resetUrl = `${req.protocol}://${req.get(
-        'host'
-      )}/api/auth/reset-password/${resetToken}`;
-
-      const emailTemplate = getPasswordResetEmailTemplate(resetUrl, user.firstName, user.language);
+      console.log('🔧 DEBUG: Генерируем НОВЫЙ шаблон с кодом:', resetCode);
+      const emailTemplate = generatePasswordResetCodeEmail(resetCode, user.firstName, user.language);
+      
+      console.log('🔧 DEBUG: Используется функция generatePasswordResetCodeEmail');
+      
+      console.log('📧 DEBUG: Subject:', emailTemplate.subject);
+      console.log('📧 DEBUG: HTML содержит код?', emailTemplate.html.includes(resetCode));
+      
+      // Показываем первые 200 символов HTML для отладки
+      console.log('📧 DEBUG: HTML preview:', emailTemplate.html.substring(0, 200) + '...');
 
       await sendEmail({
         email: user.email,
@@ -384,7 +389,7 @@ export const forgotPassword = async (req: AuthRequest, res: Response, next: Next
 
       res.status(200).json({
         success: true,
-        message: 'Password reset email sent',
+        message: 'Password reset code sent to your email',
       });
     } catch (err) {
       user.passwordResetToken = undefined;
@@ -402,30 +407,114 @@ export const forgotPassword = async (req: AuthRequest, res: Response, next: Next
   }
 };
 
-// @desc    Сброс пароля
-// @route   PUT /api/auth/reset-password/:token
+// @desc    Проверка 4-значного кода
+// @route   POST /api/auth/verify-reset-code
 // @access  Public
-export const resetPassword = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
+export const verifyResetCode = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
+    const { email, code } = req.body;
+
+    console.log('🔧 DEBUG verifyResetCode: email =', email, 'code =', code);
+
+    if (!email || !code) {
+      res.status(400).json({
+        success: false,
+        message: 'Email and code are required',
+      });
+      return;
+    }
+
     const passwordResetToken = crypto
       .createHash('sha256')
-      .update(req.params.token)
+      .update(code)
       .digest('hex');
 
+    console.log('🔧 DEBUG: passwordResetToken =', passwordResetToken);
+    console.log('🔧 DEBUG: Текущее время =', new Date());
+
+    // Сначала найдем пользователя по email
+    const userByEmail = await User.findOne({ email });
+    if (userByEmail) {
+      console.log('🔧 DEBUG: Найден пользователь с email, токен в БД =', userByEmail.passwordResetToken);
+      console.log('🔧 DEBUG: Истекает =', userByEmail.passwordResetExpires);
+      console.log('🔧 DEBUG: Токены совпадают?', userByEmail.passwordResetToken === passwordResetToken);
+      console.log('🔧 DEBUG: Код не истек?', userByEmail.passwordResetExpires && userByEmail.passwordResetExpires > new Date());
+    }
+
     const user = await User.findOne({
+      email,
       passwordResetToken,
       passwordResetExpires: { $gt: new Date() },
     });
 
     if (!user) {
+      console.log('❌ DEBUG: Пользователь с валидным кодом не найден');
       res.status(400).json({
         success: false,
-        message: 'Invalid or expired reset token',
+        message: 'Invalid or expired reset code',
       });
       return;
     }
 
-    const { password } = req.body as ResetPasswordRequestBody;
+    console.log('✅ DEBUG: Код верифицирован успешно');
+
+    res.status(200).json({
+      success: true,
+      message: 'Reset code verified successfully',
+      data: { email, codeVerified: true }
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// @desc    Сброс пароля с 4-значным кодом
+// @route   POST /api/auth/reset-password
+// @access  Public
+export const resetPassword = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const { email, code, password, confirmPassword } = req.body;
+
+    if (!email || !code || !password || !confirmPassword) {
+      res.status(400).json({
+        success: false,
+        message: 'All fields are required',
+      });
+      return;
+    }
+
+    if (password !== confirmPassword) {
+      res.status(400).json({
+        success: false,
+        message: 'Passwords do not match',
+      });
+      return;
+    }
+
+    const passwordResetToken = crypto
+      .createHash('sha256')
+      .update(code)
+      .digest('hex');
+
+    console.log('🔧 DEBUG resetPassword: email =', email, 'code =', code);
+    console.log('🔧 DEBUG: passwordResetToken =', passwordResetToken);
+
+    const user = await User.findOne({
+      email,
+      passwordResetToken,
+      passwordResetExpires: { $gt: new Date() },
+    });
+
+    if (!user) {
+      console.log('❌ DEBUG resetPassword: Пользователь с валидным кодом не найден');
+      res.status(400).json({
+        success: false,
+        message: 'Invalid or expired reset code',
+      });
+      return;
+    }
+
+    console.log('✅ DEBUG resetPassword: Пользователь найден, меняем пароль');
 
     // Установка нового пароля
     user.password = password;
@@ -434,7 +523,93 @@ export const resetPassword = async (req: AuthRequest, res: Response, next: NextF
 
     await user.save();
 
+    // Автологин после смены пароля
     sendTokenResponse(user, 200, res);
+  } catch (error) {
+    next(error);
+  }
+};
+
+// @desc    Повторная отправка письма верификации
+// @route   POST /api/auth/resend-verification
+// @access  Public
+export const resendVerificationEmail = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    // Проверка валидации
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      res.status(400).json({
+        success: false,
+        message: 'Validation failed',
+        errors: errors.array(),
+      });
+      return;
+    }
+
+    const { email } = req.body;
+
+    if (!email) {
+      res.status(400).json({
+        success: false,
+        message: 'Email is required',
+      });
+      return;
+    }
+
+    const user = await User.findOne({ email });
+
+    if (!user) {
+      res.status(404).json({
+        success: false,
+        message: 'User not found',
+      });
+      return;
+    }
+
+    if (user.isEmailVerified) {
+      res.status(400).json({
+        success: false,
+        message: 'Email is already verified',
+      });
+      return;
+    }
+
+    // Генерация нового токена для подтверждения email
+    const emailToken = crypto.randomBytes(20).toString('hex');
+    user.emailVerificationToken = crypto
+      .createHash('sha256')
+      .update(emailToken)
+      .digest('hex');
+    user.emailVerificationExpires = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 часа
+
+    await user.save({ validateBeforeSave: false });
+
+    // Отправка email подтверждения
+    try {
+      const verifyUrl = `${req.protocol}://${req.get(
+        'host'
+      )}/api/auth/verify-email/${emailToken}`;
+
+      const emailTemplate = getVerificationEmailTemplate(verifyUrl, user.firstName, user.language);
+
+      await sendEmail({
+        email: user.email,
+        subject: emailTemplate.subject,
+        html: emailTemplate.html,
+      });
+
+      res.status(200).json({
+        success: true,
+        message: 'Verification email sent successfully',
+      });
+    } catch (err) {
+      console.error('Email sending failed:', err);
+      
+      res.status(500).json({
+        success: false,
+        message: 'Could not send verification email',
+      });
+    }
   } catch (error) {
     next(error);
   }

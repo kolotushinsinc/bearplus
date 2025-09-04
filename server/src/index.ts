@@ -85,7 +85,7 @@ app.use('*', (req, res) => {
   res.status(404).json({ message: 'Route not found' });
 });
 
-const PORT: number = parseInt(process.env.PORT!) || 5000;
+const PORT: number = parseInt(process.env.PORT!) || 5005;
 
 app.listen(PORT, () => {
   console.log(`🚀 BearPlus server running on port ${PORT}`);

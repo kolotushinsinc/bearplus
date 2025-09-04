@@ -1,11 +1,14 @@
 import express from 'express';
+import { body } from 'express-validator';
 import {
   register,
   login,
   getMe,
   logout,
   verifyEmail,
+  resendVerificationEmail,
   forgotPassword,
+  verifyResetCode,
   resetPassword,
 } from '../controllers/authController';
 
@@ -16,6 +19,7 @@ import {
   validateLogin,
   validateForgotPassword,
   validateResetPassword,
+  validateResendVerification,
 } from '../validators/authValidators';
 
 const router = express.Router();
@@ -45,14 +49,37 @@ router.post('/logout', authenticateToken, logout);
 // @access  Public
 router.get('/verify-email/:token', verifyEmail);
 
+// @route   POST /api/auth/resend-verification
+// @desc    Повторная отправка письма верификации
+// @access  Public
+router.post('/resend-verification', validateResendVerification, resendVerificationEmail);
+
 // @route   POST /api/auth/forgot-password
 // @desc    Запрос сброса пароля
 // @access  Public
 router.post('/forgot-password', validateForgotPassword, forgotPassword);
 
-// @route   PUT /api/auth/reset-password/:token
-// @desc    Сброс пароля
+// @route   POST /api/auth/verify-reset-code
+// @desc    Проверка 4-значного кода восстановления
 // @access  Public
-router.put('/reset-password/:token', validateResetPassword, resetPassword);
+router.post('/verify-reset-code', [
+  body('email').isEmail().withMessage('Please provide a valid email'),
+  body('code').isLength({ min: 4, max: 4 }).withMessage('Code must be exactly 4 digits'),
+], verifyResetCode);
+
+// @route   POST /api/auth/reset-password
+// @desc    Сброс пароля с кодом
+// @access  Public
+router.post('/reset-password', [
+  body('email').isEmail().withMessage('Please provide a valid email'),
+  body('code').isLength({ min: 4, max: 4 }).withMessage('Code must be exactly 4 digits'),
+  body('password').isLength({ min: 6 }).withMessage('Password must be at least 6 characters long'),
+  body('confirmPassword').custom((value: any, { req }: any) => {
+    if (value !== req.body.password) {
+      throw new Error('Passwords do not match');
+    }
+    return true;
+  }),
+], resetPassword);
 
 export default router;

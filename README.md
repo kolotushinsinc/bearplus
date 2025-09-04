@@ -1,308 +1,321 @@
-# BearPlus - Логистическая платформа
+# 🐻 BearPlus - Professional Logistics Platform
 
-Полнофункциональная веб-платформа для логистических услуг с калькулятором доставки, системой управления заявками и административной панелью.
+BearPlus is a comprehensive logistics management platform designed for international freight forwarding, shipping calculations, and cargo tracking. The platform consists of three main components: a client application for end users, a CRM system for agents, and a robust backend API.
 
-## 🚀 Технологический стек
+## 🏗️ Architecture
+
+### Frontend Applications
+- **Client App** (React + TypeScript + Vite) - Main user interface for clients
+- **CRM Client** (React + TypeScript) - Administrative interface for agents and staff
 
 ### Backend
-- **Node.js** с **TypeScript**
-- **Express.js** - веб-фреймворк
-- **MongoDB** - основная база данных
-- **Mongoose** - ODM для MongoDB
-- **JWT** - аутентификация
-- **RabbitMQ** - очереди сообщений
-- **Redis** - кеширование
-- **Nodemailer** - отправка email
-- **Docker** - контейнеризация
+- **API Server** (Node.js + Express + TypeScript) - RESTful API server
+- **Database** (MongoDB) - Document database for data storage
+- **File Storage** - Local file system for document uploads
 
-### Frontend
-- **React** с **TypeScript**
-- **Redux Toolkit** - управление состоянием
-- **React Router** - маршрутизация
-- **Axios** - HTTP клиент
-- **React Hook Form** - работа с формами
-- **Styled Components** - стилизация
-- **React Toastify** - уведомления
-- **i18next** - интернационализация (RU/EN/ZH)
+## 🚀 Quick Start
 
-### DevOps & Infrastructure
-- **Docker & Docker Compose**
-- **Nginx** - reverse proxy и веб-сервер
-- **MongoDB** - база данных
-- **RabbitMQ** - message broker
-- **Redis** - кеширование
+### Prerequisites
+- Node.js 18+ 
+- npm or yarn
+- Docker (optional, for MongoDB)
+- MongoDB (if not using Docker)
 
-## 📁 Структура проекта
+### Installation & Startup
 
-```
-bearplus/
-├── server/                 # Backend API (Node.js + TypeScript)
-│   ├── src/
-│   │   ├── controllers/    # Контроллеры API
-│   │   ├── middleware/     # Middleware функции
-│   │   ├── models/         # Модели данных (Mongoose)
-│   │   ├── routes/         # Маршруты API
-│   │   ├── types/          # TypeScript типы
-│   │   ├── utils/          # Утилиты
-│   │   ├── validators/     # Валидация данных
-│   │   └── index.ts        # Точка входа
-│   ├── Dockerfile
-│   ├── package.json
-│   └── tsconfig.json
-├── client/                 # Frontend клиентское приложение
-│   ├── src/
-│   │   ├── components/     # React компоненты
-│   │   ├── pages/          # Страницы приложения
-│   │   ├── hooks/          # Custom hooks
-│   │   ├── services/       # API сервисы
-│   │   ├── store/          # Redux store и slices
-│   │   ├── types/          # TypeScript типы
-│   │   └── App.tsx         # Главный компонент
-│   ├── Dockerfile
-│   ├── package.json
-│   └── tsconfig.json
-├── crm-client/             # CRM административная панель
-│   ├── src/                # Аналогичная структура client
-│   ├── Dockerfile
-│   ├── package.json
-│   └── tsconfig.json
-├── docker-compose.yml      # Конфигурация Docker Compose
-└── README.md
-```
+1. **Clone and setup:**
+   ```bash
+   git clone <repository-url>
+   cd bearplus
+   chmod +x start.sh stop.sh
+   ```
 
-## 🛠️ Установка и запуск
+2. **Start the application:**
+   ```bash
+   ./start.sh
+   ```
 
-### Предварительные требования
+3. **Access the applications:**
+   - Main Client: http://localhost:5173
+   - CRM Client: http://localhost:3000  
+   - API Server: http://localhost:5005
+   - API Health: http://localhost:5005/api/health
 
-- **Node.js** 18+
-- **Docker** и **Docker Compose**
-- **Git**
+4. **Stop the application:**
+   ```bash
+   ./stop.sh
+   ```
 
-### 1. Клонирование репозитория
+## 📋 Features
 
-```bash
-git clone <repository-url>
-cd bearplus
-```
+### Client Application Features
+- **Shipping Calculator** - Calculate freight, railway, and auto delivery costs
+- **Order Management** - Create, track, and manage shipping orders
+- **Document Management** - Upload and manage shipping documents
+- **Real-time Messaging** - Communicate with logistics agents
+- **Ship Tracking** - Track vessel locations and cargo status
+- **User Dashboard** - Comprehensive overview of user activities
 
-### 2. Настройка переменных окружения
+### CRM Features
+- **User Management** - Manage clients and agents
+- **Order Processing** - Process and update order statuses
+- **Rate Management** - Create and manage shipping rates
+- **Excel Integration** - Import/export rates via Excel files
+- **Margin Settings** - Configure profit margins by service type
+- **Loyalty Management** - Manage client discounts and loyalty programs
+- **Analytics Dashboard** - Business intelligence and reporting
 
-#### Сервер
-```bash
-cd server
-cp .env.example .env
-```
+### API Features
+- **RESTful API** - Full REST API with proper HTTP status codes
+- **Authentication** - JWT-based authentication with role-based access
+- **File Upload** - Secure file upload for documents and Excel files
+- **Email Integration** - Automated email notifications
+- **Rate Limiting** - API rate limiting for security
+- **Input Validation** - Comprehensive request validation
+- **Error Handling** - Proper error handling and logging
 
-Отредактируйте [`server/.env`](server/.env) и укажите:
-- `MONGODB_URI` - строка подключения к MongoDB
-- `EMAIL_USER` и `EMAIL_PASS` - данные для отправки email
-- Другие настройки по необходимости
-
-### 3. Запуск с Docker Compose (рекомендуется)
-
-```bash
-# Запуск всех сервисов
-docker-compose up -d
-
-# Просмотр логов
-docker-compose logs -f
-
-# Остановка сервисов
-docker-compose down
-```
-
-### 4. Локальная разработка
-
-#### Запуск сервера
-```bash
-cd server
-npm install
-npm run dev
-```
-
-#### Запуск клиентского приложения
-```bash
-cd client
-npm install
-npm start
-```
-
-#### Запуск CRM
-```bash
-cd crm-client
-npm install
-npm start
-```
-
-## 🌐 Доступ к приложениям
-
-После запуска будут доступны:
-
-- **Клиентское приложение**: http://localhost:3000
-- **CRM панель**: http://localhost:3001
-- **API сервер**: http://localhost:5000
-- **MongoDB**: localhost:27017
-- **RabbitMQ Management**: http://localhost:15672 (admin/password123)
-- **Nginx**: http://localhost:80
-
-## 🔐 Система аутентификации
-
-### Типы пользователей
-- **Client** - клиенты, заказывающие логистические услуги
-- **Agent** - агенты, предоставляющие услуги и управляющие заявками
-
-### Функционал аутентификации
-- ✅ Регистрация с подтверждением email
-- ✅ Вход/выход из системы
-- ✅ Восстановление пароля
-- ✅ JWT токены с refresh
-- ✅ Защищенные маршруты
-- ✅ Проверка ролей пользователей
-- ✅ Блокировка при множественных неудачных попытках
-
-### API Endpoints
-
-#### Аутентификация
-```
-POST /api/auth/register     # Регистрация
-POST /api/auth/login        # Вход
-GET  /api/auth/me          # Текущий пользователь
-POST /api/auth/logout      # Выход
-GET  /api/auth/verify-email/:token  # Подтверждение email
-POST /api/auth/forgot-password      # Запрос сброса пароля
-PUT  /api/auth/reset-password/:token # Сброс пароля
-```
-
-#### Пользователи
-```
-GET  /api/users/profile/:id    # Профиль пользователя
-PUT  /api/users/profile/:id    # Обновление профиля
-PUT  /api/users/change-password # Смена пароля
-PUT  /api/users/deactivate     # Деактивация аккаунта
-GET  /api/users               # Список пользователей (агенты)
-PUT  /api/users/:id/loyalty   # Настройка скидки (агенты)
-```
-
-## 🏗️ Архитектура
-
-### Backend Architecture
-- **MVC Pattern** - разделение логики на Model-View-Controller
-- **Middleware Pipeline** - обработка запросов через цепочку middleware
-- **JWT Authentication** - stateless аутентификация
-- **Error Handling** - централизованная обработка ошибок
-- **Validation** - валидация данных с express-validator
-- **TypeScript** - строгая типизация
-
-### Frontend Architecture
-- **Component-Based** - модульная архитектура компонентов
-- **Redux Pattern** - предсказуемое управление состоянием
-- **Protected Routes** - контроль доступа на уровне маршрутов
-- **Service Layer** - абстракция API вызовов
-- **TypeScript** - типобезопасность
-
-### Database Schema
-```
-Users Collection:
-- userType: 'client' | 'agent'
-- firstName, lastName, username, email, phone
-- companyName, organizationType, activityType (для агентов)
-- isEmailVerified, isPhoneVerified, isActive
-- loyaltyDiscount, language
-- loginAttempts, lockUntil
-- timestamps
-```
-
-## 🔧 Конфигурация
+## 🔧 Configuration
 
 ### Environment Variables
 
 #### Server (.env)
 ```env
-PORT=5000
-NODE_ENV=development
-MONGODB_URI=mongodb://localhost:27017/bearplus
-JWT_SECRET=your_secret_key
+# Database
+MONGODB_URI=mongodb://admin:password@localhost:27017/bearplus?authSource=admin
+
+# JWT Configuration
+JWT_SECRET=your-super-secret-jwt-key-change-this-in-production
 JWT_EXPIRE=7d
+JWT_COOKIE_EXPIRE=7
+
+# Server Configuration
+PORT=5005
+NODE_ENV=development
+
+# CORS Configuration
+CLIENT_URL=http://localhost:5173
+CRM_URL=http://localhost:3000
+
+# Rate Limiting
+RATE_LIMIT_WINDOW=15
+RATE_LIMIT_MAX=100
+
+# Email Configuration (Optional)
 EMAIL_HOST=smtp.gmail.com
 EMAIL_PORT=587
-EMAIL_USER=your_email@gmail.com
-EMAIL_PASS=your_app_password
-RABBITMQ_URL=amqp://localhost:5672
-CLIENT_URL=http://localhost:3000
-CRM_URL=http://localhost:3001
+EMAIL_USER=your-email@gmail.com
+EMAIL_PASS=your-app-password
+EMAIL_FROM=noreply@bearplus.com
 ```
 
 #### Client (.env)
 ```env
-REACT_APP_API_URL=http://localhost:5000/api
+VITE_API_URL=http://localhost:5005/api
+VITE_APP_NAME=BearPlus
+VITE_APP_VERSION=1.0.0
 ```
 
-## 🚦 Статус разработки
+#### CRM Client (.env)
+```env
+REACT_APP_API_URL=http://localhost:5005/api
+REACT_APP_NAME=BearPlus CRM
+```
 
-### ✅ Готово
-- [x] Структура проекта (client, crm-client, server)
-- [x] Конфигурация TypeScript для всех приложений
-- [x] MongoDB модели и схемы
-- [x] API аутентификации и авторизации
-- [x] Redux store и управление состоянием
-- [x] Защищенные маршруты и middleware
-- [x] Docker контейнеризация
-- [x] Docker Compose конфигурация
+## 📚 API Documentation
 
-### 🔄 В разработке
-- [ ] UI компоненты форм входа и регистрации
-- [ ] Дизайн интерфейса согласно Figma макетам
-- [ ] Калькулятор доставки
-- [ ] Система управления заявками
-- [ ] Мессенджер и файловый обмен
-- [ ] Интеграция с внешними API
+### Authentication Endpoints
+- `POST /api/auth/register` - User registration
+- `POST /api/auth/login` - User login
+- `GET /api/auth/me` - Get current user
+- `POST /api/auth/logout` - User logout
+- `POST /api/auth/forgot-password` - Request password reset
+- `PUT /api/auth/reset-password/:token` - Reset password
+- `GET /api/auth/verify-email/:token` - Verify email address
 
-### 📋 Планируется
-- [ ] Модуль "Ставки фрахта"
-- [ ] Модуль "Судовая карта" (интеграция с MarineTraffic)
-- [ ] Модуль "Аренда КТК"
-- [ ] Модуль "Авто доставка"
-- [ ] Модуль "ЖД доставка"
-- [ ] Система уведомлений
-- [ ] Аналитика и отчеты
-- [ ] Мобильная адаптация
+### Order Management
+- `GET /api/orders` - Get user orders
+- `POST /api/orders` - Create new order
+- `GET /api/orders/:id` - Get order by ID
+- `PUT /api/orders/:id/status` - Update order status (agents only)
+- `POST /api/orders/:id/stages/:stageId/confirm` - Confirm order stage
+- `DELETE /api/orders/:id` - Delete order
 
-## 🐛 Отладка
+### Document Management
+- `GET /api/documents` - Get user documents
+- `POST /api/documents/upload` - Upload documents
+- `GET /api/documents/:id` - Get document by ID
+- `GET /api/documents/:id/download` - Download document
+- `DELETE /api/documents/:id` - Delete document
 
-### Логи Docker Compose
+### Shipping Services
+- `POST /api/shipping/calculate` - Calculate shipping rates
+- `POST /api/shipping/dangerous-cargo` - Submit dangerous cargo request
+
+### Rate Management (Agents)
+- `GET /api/rates` - Get agent rates
+- `POST /api/rates` - Create new rate
+- `PUT /api/rates/:id` - Update rate
+- `DELETE /api/rates/:id` - Delete rate
+- `POST /api/rates/upload` - Upload rates from Excel
+- `GET /api/rates/export` - Export rates to Excel
+- `GET /api/rates/template` - Download Excel template
+
+### Messaging System
+- `GET /api/messages/chats` - Get user chats
+- `POST /api/messages/chats` - Create new chat
+- `GET /api/messages/chats/:id/messages` - Get chat messages
+- `POST /api/messages/chats/:id/messages` - Send message
+- `POST /api/messages/chats/:id/read` - Mark messages as read
+
+## 🎭 User Roles
+
+### Client
+- Calculate shipping costs
+- Create and manage orders
+- Upload documents
+- Communicate with agents
+- Track shipments
+
+### Agent
+- All client permissions
+- Manage shipping rates
+- Configure margins and settings
+- Manage client loyalty programs
+- Process orders and update statuses
+- Access advanced analytics
+
+## 🔐 Security Features
+
+- **JWT Authentication** - Secure token-based authentication
+- **Role-Based Access Control** - Different permissions for clients and agents
+- **Rate Limiting** - Protection against abuse
+- **Input Validation** - Comprehensive request validation
+- **File Upload Security** - Secure file handling with type restrictions
+- **Password Security** - Bcrypt hashing with salt
+- **Account Lockout** - Protection against brute force attacks
+
+## 📦 File Upload Support
+
+### Supported File Types
+- **Documents**: PDF, DOC, DOCX, JPG, PNG
+- **Excel Files**: XLS, XLSX (for rate imports)
+- **Maximum Size**: 10MB per file
+
+### Upload Endpoints
+- `/api/documents/upload` - Multiple document upload
+- `/api/rates/upload` - Excel file upload for rates
+
+## 🌐 Internationalization
+
+The platform supports multiple languages:
+- **Russian** (ru) - Default
+- **English** (en)
+- **Chinese** (zh)
+
+Language can be changed in user settings.
+
+## 🔧 Development
+
+### Project Structure
+```
+bearplus/
+├── server/          # Backend API server
+├── client/          # Main client application
+├── crm-client/      # CRM interface
+├── start.sh         # Startup script
+├── stop.sh          # Stop script
+└── README.md        # This file
+```
+
+### Development Scripts
+
+#### Server
 ```bash
-# Все сервисы
-docker-compose logs -f
-
-# Конкретный сервис
-docker-compose logs -f server
-docker-compose logs -f client
-docker-compose logs -f mongodb
+cd server
+npm run dev         # Start development server
+npm run build       # Build for production
+npm start           # Start production server
 ```
 
-### Подключение к контейнерам
+#### Client
 ```bash
-# Сервер
-docker-compose exec server sh
-
-# MongoDB
-docker-compose exec mongodb mongosh
-
-# Перезапуск сервиса
-docker-compose restart server
+cd client
+npm run dev         # Start development server
+npm run build       # Build for production
+npm run preview     # Preview production build
 ```
 
-## 🤝 Контрибьютинг
+#### CRM Client
+```bash
+cd crm-client
+npm start           # Start development server
+npm run build       # Build for production
+```
 
-1. Создайте feature branch
-2. Внесите изменения
-3. Добавьте тесты
-4. Создайте Pull Request
+## 🐳 Docker Deployment
 
-## 📝 Лицензия
+### Using Docker Compose
+```bash
+docker-compose up -d
+```
 
-MIT License
+This will start:
+- MongoDB database
+- API server
+- Client application
+- CRM client
+- Nginx reverse proxy
 
-## 📞 Поддержка
+### Environment Variables for Docker
+Configure the `.env` files appropriately for your deployment environment.
 
-Для вопросов и поддержки создавайте Issues в репозитории.
+## 🔍 Troubleshooting
+
+### Common Issues
+
+1. **MongoDB Connection Error**
+   - Ensure MongoDB is running
+   - Check connection string in server/.env
+   - Verify credentials
+
+2. **Port Already in Use**
+   - Check if services are already running
+   - Use `./stop.sh` to stop all services
+   - Change ports in configuration if needed
+
+3. **File Upload Issues**
+   - Check file size limits (10MB max)
+   - Verify file types are supported
+   - Ensure upload directory permissions
+
+4. **CORS Issues**
+   - Verify CLIENT_URL and CRM_URL in server/.env
+   - Check that frontend URLs match configuration
+
+### Logs and Debugging
+- Server logs: Check terminal output from server process
+- Client logs: Browser developer console
+- API testing: Use tools like Postman or curl
+
+## 🤝 Contributing
+
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Add tests if applicable
+5. Submit a pull request
+
+## 📄 License
+
+This project is licensed under the MIT License - see the LICENSE file for details.
+
+## 🆘 Support
+
+For support and questions:
+- Create an issue in the repository
+- Contact the development team
+- Check the troubleshooting section above
+
+---
+
+**BearPlus** - Professional logistics made simple 🐻📦

@@ -1,21 +1,29 @@
 import * as React from 'react';
 import { useState } from 'react';
+import { apiService } from '../services/apiService';
 
 interface ShippingCalculatorProps {
   className?: string;
 }
 
 export type TransportType = 'freight' | 'auto' | 'railway';
+export type CargoType = 'normal' | 'dangerous' | 'consolidated' | 'consolidated_dangerous';
 
 interface CalculatorFormData {
   transportType: TransportType;
   departure: string;
   arrival: string;
   containerType: string;
-  cargoType: 'dangerous' | 'normal';
+  cargoType: CargoType;
   weight: string;
+  dimensions?: {
+    length: string;
+    width: string;
+    height: string;
+  };
   departureDate: string;
   arrivalDate: string;
+  deliveryType: 'direct' | 'with_stops';
   msdsFiles: File[];
 }
 
@@ -27,8 +35,14 @@ const ShippingCalculator: React.FC<ShippingCalculatorProps> = ({ className = '' 
     containerType: '',
     cargoType: 'normal',
     weight: '',
+    dimensions: {
+      length: '',
+      width: '',
+      height: ''
+    },
     departureDate: '',
     arrivalDate: '',
+    deliveryType: 'direct',
     msdsFiles: []
   });
 
@@ -97,28 +111,31 @@ const ShippingCalculator: React.FC<ShippingCalculatorProps> = ({ className = '' 
     setIsCalculating(true);
     
     try {
-      // If dangerous cargo, send for review
-      if (formData.cargoType === 'dangerous') {
-        // Send to logistics for review
-        alert('Запрос с опасным грузом отправлен на рассмотрение логистам. Мы свяжемся с вами в ближайшее время.');
+      // Check if request should be sent for review
+      const needsReview = formData.cargoType === 'dangerous' ||
+                         formData.cargoType === 'consolidated' ||
+                         formData.cargoType === 'consolidated_dangerous';
+      
+      if (needsReview) {
+        // Send request for review
+        const response = await apiService.shipping.submitDangerousCargoRequest(formData);
+        
+        if (response.success) {
+          alert('Запрос отправлен на рассмотрение логистам. Мы свяжемся с вами в ближайшее время с индивидуальным предложением.');
+        } else {
+          alert('Ошибка при отправке запроса: ' + (response.message || 'Неизвестная ошибка'));
+        }
         setIsCalculating(false);
         return;
       }
 
-      // Calculate shipping cost
-      const response = await fetch('/api/shipping/calculate', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(formData)
-      });
-
-      if (response.ok) {
-        const result = await response.json();
-        setCalculationResult(result);
+      // Calculate shipping cost for normal cargo
+      const response = await apiService.shipping.calculateRate(formData);
+      
+      if (response.success) {
+        setCalculationResult(response.data);
       } else {
-        alert('Ошибка при расчете стоимости доставки');
+        alert('Ошибка при расчете стоимости доставки: ' + (response.message || 'Неизвестная ошибка'));
       }
     } catch (error) {
       console.error('Calculation error:', error);
@@ -130,163 +147,286 @@ const ShippingCalculator: React.FC<ShippingCalculatorProps> = ({ className = '' 
 
   const isFormValid = formData.departure && formData.arrival && formData.containerType && formData.weight;
 
+  const getButtonText = () => {
+    const needsReview = formData.cargoType === 'dangerous' ||
+                       formData.cargoType === 'consolidated' ||
+                       formData.cargoType === 'consolidated_dangerous';
+    
+    if (isCalculating) return 'Обработка...';
+    return needsReview ? 'Оставить запрос' : 'Найти варианты';
+  };
+
+  const showDimensions = formData.cargoType === 'consolidated' || formData.cargoType === 'consolidated_dangerous';
+  const showMsds = formData.cargoType === 'dangerous' || formData.cargoType === 'consolidated_dangerous';
+
   return (
-    <div className={`card ${className}`}>
-      <h2 className="text-2xl font-bold text-white mb-6">Расчет доставки</h2>
-      
-      {/* Transport Type Toggle */}
-      <div className="radio-tabs mb-6">
-        {(Object.keys(transportTypeLabels) as TransportType[]).map((type) => (
-          <button
-            key={type}
-            onClick={() => handleTransportTypeChange(type)}
-            className={`radio-tab ${formData.transportType === type ? 'active' : 'inactive'}`}
-          >
-            {transportTypeLabels[type]}
-          </button>
-        ))}
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-        {/* Departure */}
-        <div>
-          <label className="block text-sm font-medium text-gray-300 mb-2">
-            Пункт отправления *
-          </label>
-          <input
-            type="text"
-            value={formData.departure}
-            onChange={(e) => handleInputChange('departure', e.target.value)}
-            placeholder="Введите город отправления"
-            className="input-field w-full"
-          />
+    <div className={`card relative overflow-hidden animate-fade-in ${className}`}>
+      <div className="absolute inset-0 bg-gradient-to-br from-tech-primary/3 via-transparent to-tech-secondary/3"></div>
+      <div className="relative z-10">
+        <div className="flex items-center gap-3 mb-8">
+          <div className="p-2 bg-tech-primary/10 rounded-lg border border-tech-primary/20">
+            <span className="text-xl">🧮</span>
+          </div>
+          <h2 className="text-tech-title">Расчет доставки</h2>
+        </div>
+        
+        {/* Modern Transport Type Toggle */}
+        <div className="radio-tabs mb-8">
+          {(Object.keys(transportTypeLabels) as TransportType[]).map((type) => (
+            <button
+              key={type}
+              onClick={() => handleTransportTypeChange(type)}
+              className={`radio-tab ${formData.transportType === type ? 'active' : 'inactive'}`}
+            >
+              <span className="mr-2">
+                {type === 'freight' ? '🚢' : type === 'auto' ? '🚛' : '🚂'}
+              </span>
+              {transportTypeLabels[type]}
+            </button>
+          ))}
         </div>
 
-        {/* Arrival */}
-        <div>
-          <label className="block text-sm font-medium text-gray-300 mb-2">
-            Пункт прибытия *
-          </label>
-          <input
-            type="text"
-            value={formData.arrival}
-            onChange={(e) => handleInputChange('arrival', e.target.value)}
-            placeholder="Введите город прибытия"
-            className="input-field w-full"
-          />
+        <div className="grid tech-grid-2 gap-6 mb-8">
+          {/* Departure */}
+          <div className="form-group">
+            <label className="form-label">
+              📍 Пункт отправления *
+            </label>
+            <input
+              type="text"
+              value={formData.departure}
+              onChange={(e) => handleInputChange('departure', e.target.value)}
+              placeholder="Москва, Санкт-Петербург..."
+              className="input-field"
+            />
+          </div>
+
+          {/* Arrival */}
+          <div className="form-group">
+            <label className="form-label">
+              🎯 Пункт прибытия *
+            </label>
+            <input
+              type="text"
+              value={formData.arrival}
+              onChange={(e) => handleInputChange('arrival', e.target.value)}
+              placeholder="Шанхай, Гамбург..."
+              className="input-field"
+            />
+          </div>
+
+          {/* Container Type */}
+          <div className="form-group">
+            <label className="form-label">
+              📦 Тип контейнера *
+            </label>
+            <select
+              value={formData.containerType}
+              onChange={(e) => handleInputChange('containerType', e.target.value)}
+              className="select-field"
+            >
+              <option value="">Выберите тип</option>
+              {containerTypes[formData.transportType].map((type) => (
+                <option key={type.value} value={type.value}>
+                  {type.label}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Weight */}
+          <div className="form-group">
+            <label className="form-label">
+              ⚖️ Вес груза (кг) *
+            </label>
+            <input
+              type="number"
+              value={formData.weight}
+              onChange={(e) => handleInputChange('weight', e.target.value)}
+              placeholder="15000"
+              className="input-field"
+            />
+          </div>
+
+          {/* Departure Date */}
+          <div className="form-group">
+            <label className="form-label">
+              🗓️ Дата отправления
+            </label>
+            <input
+              type="date"
+              value={formData.departureDate}
+              onChange={(e) => handleInputChange('departureDate', e.target.value)}
+              className="input-field"
+            />
+          </div>
+
+          {/* Arrival Date */}
+          <div className="form-group">
+            <label className="form-label">
+              📅 Дата прибытия
+            </label>
+            <input
+              type="date"
+              value={formData.arrivalDate}
+              onChange={(e) => handleInputChange('arrivalDate', e.target.value)}
+              className="input-field"
+            />
+          </div>
         </div>
 
-        {/* Container Type */}
-        <div>
-          <label className="block text-sm font-medium text-gray-300 mb-2">
-            Тип контейнера *
+        {/* Modern Delivery Type */}
+        <div className="mb-8">
+          <label className="form-label mb-4">
+            🚀 Тип доставки
           </label>
-          <select
-            value={formData.containerType}
-            onChange={(e) => handleInputChange('containerType', e.target.value)}
-            className="select-field w-full"
-          >
-            <option value="">Выберите тип контейнера</option>
-            {containerTypes[formData.transportType].map((type) => (
-              <option key={type.value} value={type.value}>
-                {type.label}
-              </option>
+          <div className="grid tech-grid-2 gap-4">
+            <label className="card-interactive p-4 cursor-pointer border border-tech-border">
+              <input
+                type="radio"
+                name="deliveryType"
+                value="direct"
+                checked={formData.deliveryType === 'direct'}
+                onChange={(e) => handleInputChange('deliveryType', e.target.value as 'direct' | 'with_stops')}
+                className="sr-only"
+              />
+              <div className="flex items-center gap-3">
+                <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
+                  formData.deliveryType === 'direct'
+                    ? 'bg-tech-primary border-tech-primary'
+                    : 'border-tech-border-light'
+                }`}>
+                  {formData.deliveryType === 'direct' && (
+                    <div className="w-2 h-2 bg-tech-bg rounded-full"></div>
+                  )}
+                </div>
+                <div>
+                  <div className="text-tech-body font-medium">Прямой рейс</div>
+                  <div className="text-tech-caption">Без промежуточных остановок</div>
+                </div>
+              </div>
+            </label>
+            <label className="card-interactive p-4 cursor-pointer border border-tech-border">
+              <input
+                type="radio"
+                name="deliveryType"
+                value="with_stops"
+                checked={formData.deliveryType === 'with_stops'}
+                onChange={(e) => handleInputChange('deliveryType', e.target.value as 'direct' | 'with_stops')}
+                className="sr-only"
+              />
+              <div className="flex items-center gap-3">
+                <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
+                  formData.deliveryType === 'with_stops'
+                    ? 'bg-tech-primary border-tech-primary'
+                    : 'border-tech-border-light'
+                }`}>
+                  {formData.deliveryType === 'with_stops' && (
+                    <div className="w-2 h-2 bg-tech-bg rounded-full"></div>
+                  )}
+                </div>
+                <div>
+                  <div className="text-tech-body font-medium">С заходом в порт</div>
+                  <div className="text-tech-caption">Возможны промежуточные остановки</div>
+                </div>
+              </div>
+            </label>
+          </div>
+        </div>
+
+        {/* Modern Cargo Type */}
+        <div className="mb-8">
+          <label className="form-label mb-4">
+            📋 Характеристики груза
+          </label>
+          <div className="grid tech-grid-2 gap-3">
+            {[
+              { value: 'normal', label: 'Неопасный груз', icon: '✅', desc: 'Стандартные товары' },
+              { value: 'dangerous', label: 'Опасный груз', icon: '⚠️', desc: 'Требует MSDS' },
+              { value: 'consolidated', label: 'Сборный груз', icon: '📦', desc: 'Частичная загрузка' },
+              { value: 'consolidated_dangerous', label: 'Сборный + Опасный', icon: '🚨', desc: 'Особые требования' }
+            ].map((option) => (
+              <label key={option.value} className="card-interactive p-3 cursor-pointer border border-tech-border">
+                <input
+                  type="radio"
+                  name="cargoType"
+                  value={option.value}
+                  checked={formData.cargoType === option.value}
+                  onChange={(e) => handleInputChange('cargoType', e.target.value as CargoType)}
+                  className="sr-only"
+                />
+                <div className="flex items-center gap-3">
+                  <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
+                    formData.cargoType === option.value
+                      ? 'bg-tech-primary border-tech-primary'
+                      : 'border-tech-border-light'
+                  }`}>
+                    {formData.cargoType === option.value && (
+                      <div className="w-2 h-2 bg-tech-bg rounded-full"></div>
+                    )}
+                  </div>
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm">{option.icon}</span>
+                      <span className="text-tech-body font-medium">{option.label}</span>
+                    </div>
+                    <div className="text-tech-caption">{option.desc}</div>
+                  </div>
+                </div>
+              </label>
             ))}
-          </select>
+          </div>
         </div>
 
-        {/* Weight */}
-        <div>
+      {/* Dimensions for consolidated cargo */}
+      {showDimensions && (
+        <div className="mb-6">
           <label className="block text-sm font-medium text-gray-300 mb-2">
-            Вес груза (кг) *
+            Габариты груза
           </label>
-          <input
-            type="number"
-            value={formData.weight}
-            onChange={(e) => handleInputChange('weight', e.target.value)}
-            placeholder="Введите вес груза"
-            className="input-field w-full"
-          />
-        </div>
-
-        {/* Departure Date */}
-        <div>
-          <label className="block text-sm font-medium text-gray-300 mb-2">
-            Желаемая дата отправления
-          </label>
-          <input
-            type="date"
-            value={formData.departureDate}
-            onChange={(e) => handleInputChange('departureDate', e.target.value)}
-            className="input-field w-full"
-          />
-        </div>
-
-        {/* Arrival Date */}
-        <div>
-          <label className="block text-sm font-medium text-gray-300 mb-2">
-            Желаемая дата прибытия
-          </label>
-          <input
-            type="date"
-            value={formData.arrivalDate}
-            onChange={(e) => handleInputChange('arrivalDate', e.target.value)}
-            className="input-field w-full"
-          />
-        </div>
-      </div>
-
-      {/* Cargo Type */}
-      <div className="mb-6">
-        <label className="block text-sm font-medium text-gray-300 mb-2">
-          Характеристики груза
-        </label>
-        <div className="flex gap-4">
-          <label className="flex items-center">
-            <input
-              type="radio"
-              name="cargoType"
-              value="normal"
-              checked={formData.cargoType === 'normal'}
-              onChange={(e) => handleInputChange('cargoType', e.target.value as 'normal' | 'dangerous')}
-              className="sr-only"
-            />
-            <div className={`w-4 h-4 rounded-full border-2 mr-2 ${
-              formData.cargoType === 'normal' 
-                ? 'bg-bearplus-green border-bearplus-green' 
-                : 'border-gray-500'
-            }`}>
-              {formData.cargoType === 'normal' && (
-                <div className="w-2 h-2 bg-white rounded-full mx-auto mt-0.5"></div>
-              )}
+          <div className="grid grid-cols-3 gap-4">
+            <div>
+              <input
+                type="number"
+                value={formData.dimensions?.length || ''}
+                onChange={(e) => handleInputChange('dimensions', {
+                  ...formData.dimensions,
+                  length: e.target.value
+                })}
+                placeholder="Длина (см)"
+                className="input-field w-full"
+              />
             </div>
-            <span className="text-white">Неопасный груз</span>
-          </label>
-          <label className="flex items-center">
-            <input
-              type="radio"
-              name="cargoType"
-              value="dangerous"
-              checked={formData.cargoType === 'dangerous'}
-              onChange={(e) => handleInputChange('cargoType', e.target.value as 'normal' | 'dangerous')}
-              className="sr-only"
-            />
-            <div className={`w-4 h-4 rounded-full border-2 mr-2 ${
-              formData.cargoType === 'dangerous' 
-                ? 'bg-bearplus-green border-bearplus-green' 
-                : 'border-gray-500'
-            }`}>
-              {formData.cargoType === 'dangerous' && (
-                <div className="w-2 h-2 bg-white rounded-full mx-auto mt-0.5"></div>
-              )}
+            <div>
+              <input
+                type="number"
+                value={formData.dimensions?.width || ''}
+                onChange={(e) => handleInputChange('dimensions', {
+                  ...formData.dimensions,
+                  width: e.target.value
+                })}
+                placeholder="Ширина (см)"
+                className="input-field w-full"
+              />
             </div>
-            <span className="text-white">Опасный груз</span>
-          </label>
+            <div>
+              <input
+                type="number"
+                value={formData.dimensions?.height || ''}
+                onChange={(e) => handleInputChange('dimensions', {
+                  ...formData.dimensions,
+                  height: e.target.value
+                })}
+                placeholder="Высота (см)"
+                className="input-field w-full"
+              />
+            </div>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* MSDS Upload for dangerous cargo */}
-      {formData.cargoType === 'dangerous' && (
+      {showMsds && (
         <div className="mb-6">
           <label className="block text-sm font-medium text-gray-300 mb-2">
             Загрузить MSDS документы
@@ -316,28 +456,59 @@ const ShippingCalculator: React.FC<ShippingCalculatorProps> = ({ className = '' 
         </div>
       )}
 
-      {/* Calculate Button */}
-      <button
-        onClick={handleCalculate}
-        disabled={!isFormValid || isCalculating}
-        className="btn-primary w-full"
-      >
-        {isCalculating ? 'Расчет...' : 'Рассчитать стоимость'}
-      </button>
-
-      {/* Calculation Result */}
-      {calculationResult && (
-        <div className="mt-6 p-4 bg-bearplus-card-dark rounded-lg border border-bearplus-green">
-          <h3 className="text-lg font-bold text-bearplus-green mb-2">Результат расчета</h3>
-          <div className="text-white">
-            <p>Маршрут: {calculationResult.route}</p>
-            <p>Время в пути: {calculationResult.transitTime} дней</p>
-            <p className="text-xl font-bold text-bearplus-green">
-              Стоимость: {calculationResult.totalCost} {calculationResult.currency}
-            </p>
-          </div>
+        {/* Modern Calculate Button */}
+        <div className="flex justify-center mt-10">
+          <button
+            onClick={handleCalculate}
+            disabled={!isFormValid || isCalculating}
+            className="btn-primary px-8 relative group"
+          >
+            {isCalculating && (
+              <div className="absolute inset-0 flex items-center justify-center">
+                <div className="w-4 h-4 border-2 border-tech-bg border-t-transparent rounded-full animate-spin"></div>
+              </div>
+            )}
+            <span className={isCalculating ? 'opacity-0' : 'opacity-100'}>
+              {getButtonText()}
+            </span>
+          </button>
         </div>
-      )}
+
+        {/* Modern Calculation Result */}
+        {calculationResult && (
+          <div className="mt-8 card bg-tech-surface border-tech-primary/30 relative overflow-hidden animate-slide-up">
+            <div className="absolute inset-0 bg-gradient-to-br from-tech-primary/10 via-transparent to-tech-secondary/10"></div>
+            <div className="relative z-10">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="p-2 bg-tech-primary/20 rounded-lg border border-tech-primary/30">
+                  <span className="text-lg">📊</span>
+                </div>
+                <h3 className="text-tech-subtitle text-gradient">Результат расчета</h3>
+              </div>
+              <div className="grid tech-grid-2 gap-6">
+                <div className="space-y-3">
+                  <div className="flex justify-between items-center">
+                    <span className="text-tech-caption">Маршрут:</span>
+                    <span className="text-tech-body font-medium">{calculationResult.route}</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-tech-caption">Время в пути:</span>
+                    <span className="text-tech-body font-medium">{calculationResult.transitTime} дней</span>
+                  </div>
+                </div>
+                <div className="flex items-center justify-center">
+                  <div className="text-center">
+                    <div className="text-tech-caption mb-1">Стоимость доставки</div>
+                    <div className="text-2xl font-bold text-gradient">
+                      {calculationResult.totalCost?.toLocaleString()} {calculationResult.currency}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 };

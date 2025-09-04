@@ -1,7 +1,7 @@
 import express from 'express';
 import {
   getDocuments,
-  uploadDocument,
+  uploadDocument as uploadDocumentController,
   getDocumentById,
   updateDocumentStatus,
   deleteDocument,
@@ -9,6 +9,7 @@ import {
 } from '../controllers/documentsController';
 
 import { authenticateToken, authorize } from '../middleware/auth';
+import { uploadDocument as uploadDocumentMiddleware, handleUploadError } from '../middleware/upload';
 
 const router = express.Router();
 
@@ -18,9 +19,14 @@ const router = express.Router();
 router.get('/', authenticateToken, getDocuments);
 
 // @route   POST /api/documents/upload
-// @desc    Загрузка документа
+// @desc    Загрузка документов
 // @access  Private
-router.post('/upload', authenticateToken, uploadDocument);
+router.post('/upload',
+  authenticateToken,
+  uploadDocumentMiddleware.array('documents', 5),
+  handleUploadError,
+  uploadDocumentController
+);
 
 // @route   GET /api/documents/:documentId
 // @desc    Получение документа по ID

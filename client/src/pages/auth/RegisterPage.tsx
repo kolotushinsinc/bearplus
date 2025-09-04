@@ -1,734 +1,525 @@
 import * as React from 'react';
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { useAppDispatch, useAppSelector } from '../../hooks/redux';
-import { registerUser, clearError } from '../../store/slices/authSlice';
-import { RegisterFormData } from '../../types';
+import { useAppDispatch } from '../../hooks/redux';
 
-// Кастомный селект компонент
-interface CustomSelectProps {
-  value: string;
-  onChange: (value: string) => void;
-  placeholder: string;
-  options: { value: string; label: string }[];
-  name: string;
-}
-
-const CustomSelect: React.FC<CustomSelectProps> = ({ value, onChange, placeholder, options, name }) => {
-  const [isOpen, setIsOpen] = useState(false);
-
-  const handleSelect = (optionValue: string) => {
-    onChange(optionValue);
-    setIsOpen(false);
-  };
-
-  const selectedOption = options.find(opt => opt.value === value);
-
-  return (
-    <div className="relative">
-      <button
-        type="button"
-        onClick={() => setIsOpen(!isOpen)}
-        className="input-field w-full text-left flex items-center justify-between"
-      >
-        <span className={selectedOption ? 'text-white' : 'text-gray-500'}>
-          {selectedOption ? selectedOption.label : placeholder}
-        </span>
-        <svg
-          className={`w-4 h-4 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`}
-          fill="currentColor"
-          viewBox="0 0 20 20"
-        >
-          <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
-        </svg>
-      </button>
-      
-      {isOpen && (
-        <div className="absolute top-full left-0 right-0 z-10 mt-1 bg-bearplus-card-dark border-2 border-bearplus-green shadow-lg max-h-60 overflow-auto">
-          {options.map((option) => (
-            <button
-              key={option.value}
-              type="button"
-              onClick={() => handleSelect(option.value)}
-              className={`w-full px-4 py-3 text-left transition-colors border-b border-gray-600 last:border-b-0 ${
-                value === option.value ? 'bg-bearplus-green text-black' : 'text-white hover:bg-bearplus-green hover:text-black'
-              }`}
-            >
-              {option.label}
-            </button>
-          ))}
-        </div>
-      )}
-      <input type="hidden" name={name} value={value} />
-    </div>
-  );
-};
-
-type UserType = 'client' | 'agent';
-type Step = 'role' | 'form' | 'verification';
-
-interface FormData {
-  userType: UserType | null;
+interface RegisterForm {
   firstName: string;
   lastName: string;
-  organization: string;
-  login: string;
   email: string;
-  phone: string;
   password: string;
   confirmPassword: string;
-  agree: boolean;
-  // Agent specific fields
-  organizationType: 'llc' | 'jsc' | 'individual' | 'foreign' | 'other' | '';
-  activity: 'freight_forwarder' | 'customs_broker' | 'transport_company' | 'logistics' | 'other' | '';
-  agreeTerms: boolean;
-  agreePrivacy: boolean;
+  phone: string;
+  company: string;
+  position: string;
+  userType: 'client' | 'agent';
+  acceptTerms: boolean;
+  acceptNewsletter: boolean;
 }
 
 const RegisterPage: React.FC = () => {
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
-  const { isLoading, error, isAuthenticated } = useAppSelector((state) => state.auth);
-  const [step, setStep] = useState<Step>('role');
-  const [selectedRole, setSelectedRole] = useState<UserType | null>(null);
+  const [currentStep, setCurrentStep] = useState<'userType' | 'form'>('userType');
+  const [formData, setFormData] = useState<RegisterForm>({
+    firstName: '',
+    lastName: '',
+    email: '',
+    password: '',
+    confirmPassword: '',
+    phone: '',
+    company: '',
+    position: '',
+    userType: 'client',
+    acceptTerms: false,
+    acceptNewsletter: false
+  });
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
-  // Redirect if already authenticated
-  React.useEffect(() => {
-    if (isAuthenticated) {
-      navigate('/dashboard');
+  const validateForm = (): boolean => {
+    const newErrors: Record<string, string> = {};
+
+    // Required field validation
+    if (!formData.firstName.trim()) {
+      newErrors.firstName = 'Имя обязательно для заполнения';
     }
-  }, [isAuthenticated, navigate]);
 
-  // Clear errors when component mounts
-  React.useEffect(() => {
-    dispatch(clearError());
-  }, [dispatch]);
-  const [formData, setFormData] = useState<FormData>({
-    userType: null,
-    firstName: '',
-    lastName: '',
-    organization: '',
-    login: '',
-    email: '',
-    phone: '',
-    password: '',
-    confirmPassword: '',
-    agree: false,
-    organizationType: '',
-    activity: '',
-    agreeTerms: false,
-    agreePrivacy: false
-  });
-
-  const [errors, setErrors] = useState<{[key: string]: string}>({});
-
-  const handleRoleSelect = (role: UserType) => {
-    setSelectedRole(role);
-  };
-
-  const handleNext = () => {
-    if (selectedRole) {
-      setFormData(prev => ({ ...prev, userType: selectedRole }));
-      setStep('form');
+    if (!formData.lastName.trim()) {
+      newErrors.lastName = 'Фамилия обязательна для заполнения';
     }
+
+    if (!formData.email.trim()) {
+      newErrors.email = 'Email обязателен для заполнения';
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+      newErrors.email = 'Неверный формат email';
+    }
+
+    if (!formData.password) {
+      newErrors.password = 'Пароль обязателен для заполнения';
+    } else if (formData.password.length < 8) {
+      newErrors.password = 'Пароль должен содержать минимум 8 символов';
+    } else if (!/(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/.test(formData.password)) {
+      newErrors.password = 'Пароль должен содержать заглавные и строчные буквы, а также цифры';
+    }
+
+    if (formData.password !== formData.confirmPassword) {
+      newErrors.confirmPassword = 'Пароли не совпадают';
+    }
+
+    if (!formData.phone.trim()) {
+      newErrors.phone = 'Телефон обязателен для заполнения';
+    } else if (!/^[\+]?[1-9][\d]{0,15}$/.test(formData.phone.replace(/[\s\-\(\)]/g, ''))) {
+      newErrors.phone = 'Неверный формат телефона';
+    }
+
+    if (!formData.company.trim()) {
+      newErrors.company = 'Название компании обязательно для заполнения';
+    }
+
+    if (!formData.acceptTerms) {
+      newErrors.acceptTerms = 'Необходимо согласиться с условиями использования';
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
   };
 
-  const handleBack = () => {
-    setStep('role');
-    setSelectedRole(null);
-  };
-
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value, type } = e.target;
-    const checked = type === 'checkbox' ? (e.target as HTMLInputElement).checked : undefined;
+    const checked = (e.target as HTMLInputElement).checked;
+
     setFormData(prev => ({
       ...prev,
       [name]: type === 'checkbox' ? checked : value
     }));
-    
-    // Очистить ошибки при изменении полей
+
+    // Clear error when user starts typing
     if (errors[name]) {
-      setErrors(prev => ({ ...prev, [name]: '' }));
+      setErrors(prev => ({
+        ...prev,
+        [name]: ''
+      }));
     }
-  };
-
-  const validateForm = () => {
-    const newErrors: {[key: string]: string} = {};
-    let isValid = true;
-
-    // Общие поля
-    if (!formData.firstName.trim()) {
-      newErrors.firstName = 'Введите имя';
-      isValid = false;
-    }
-
-    if (!formData.lastName.trim()) {
-      newErrors.lastName = 'Введите фамилию';
-      isValid = false;
-    }
-
-    if (!formData.login.trim()) {
-      newErrors.login = 'Введите логин';
-      isValid = false;
-    }
-
-    if (!formData.email.trim()) {
-      newErrors.email = 'Введите email';
-      isValid = false;
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
-      newErrors.email = 'Введите корректный email';
-      isValid = false;
-    }
-
-    if (!formData.phone.trim()) {
-      newErrors.phone = 'Введите телефон';
-      isValid = false;
-    }
-
-    // Для клиентов - пароли
-    if (formData.userType === 'client') {
-      if (!formData.password.trim()) {
-        newErrors.password = 'Введите пароль';
-        isValid = false;
-      } else if (formData.password.length < 6) {
-        newErrors.password = 'Пароль должен быть не менее 6 символов';
-        isValid = false;
-      }
-
-      if (!formData.confirmPassword.trim()) {
-        newErrors.confirmPassword = 'Подтвердите пароль';
-        isValid = false;
-      } else if (formData.password !== formData.confirmPassword) {
-        newErrors.confirmPassword = 'Пароли не совпадают';
-        isValid = false;
-      }
-
-      if (!formData.agree) {
-        newErrors.agree = 'Необходимо согласие с условиями';
-        isValid = false;
-      }
-    }
-
-    // Для агентов
-    if (formData.userType === 'agent') {
-      if (!formData.organizationType.trim()) {
-        newErrors.organizationType = 'Выберите тип организации';
-        isValid = false;
-      }
-
-      if (!formData.activity.trim()) {
-        newErrors.activity = 'Выберите тип деятельности';
-        isValid = false;
-      }
-
-      if (!formData.agreeTerms || !formData.agreePrivacy) {
-        newErrors.agreement = 'Необходимо согласие с условиями';
-        isValid = false;
-      }
-    }
-
-    setErrors(newErrors);
-    return isValid;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (validateForm()) {
-      setErrors({});
-      
-      const registerData: RegisterFormData = {
-        userType: formData.userType!,
-        firstName: formData.firstName,
-        lastName: formData.lastName,
-        username: formData.login,
-        email: formData.email,
-        phone: formData.phone,
-        password: formData.password,
-        confirmPassword: formData.confirmPassword,
-        companyName: formData.organization || undefined,
-        organizationType: formData.organizationType || undefined,
-        activityType: formData.activity || undefined,
-        language: 'ru'
-      };
+    if (!validateForm()) {
+      return;
+    }
 
-      const result = await dispatch(registerUser(registerData));
+    setIsLoading(true);
+    
+    try {
+      // In production, this would be an API call
+      console.log('Registering user:', formData);
       
-      if (registerUser.fulfilled.match(result)) {
-        // Переходим к этапу показа успешной регистрации
-        setStep('verification');
-      } else {
-        // Обработка ошибок
-        const errorMessage = result.payload as string || 'Произошла ошибка при регистрации';
-        
-        if (errorMessage.includes('email already exists') || errorMessage.includes('email')) {
-          setErrors(prev => ({ ...prev, email: 'Пользователь с таким email уже существует' }));
-        } else if (errorMessage.includes('Username already taken') || errorMessage.includes('username')) {
-          setErrors(prev => ({ ...prev, login: 'Данный логин уже занят' }));
-        } else {
-          setErrors(prev => ({ ...prev, general: 'Ошибка регистрации. Попробуйте снова.' }));
-        }
-      }
+      // Simulate API call
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      
+      // Simulate successful registration
+      // In real app, dispatch register action
+      // dispatch(register(formData));
+      
+      // Redirect to email verification
+      navigate('/auth/verify-email', { 
+        state: { email: formData.email }
+      });
+      
+    } catch (error) {
+      console.error('Registration error:', error);
+      setErrors({ email: 'Ошибка при регистрации. Попробуйте снова.' });
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  // Этап 1: Выбор роли
-  if (step === 'role') {
-    return (
-      <div className="flex-1 flex items-center justify-center py-12">
-        <div className="w-full max-w-2xl mx-auto text-center">
-          <h1 className="text-4xl font-bold text-white mb-4">Регистрация</h1>
-          <p className="text-gray-400 mb-12">Выберите, в роли кого вы хотите зарегистрироваться</p>
-          
-          <div className="grid grid-cols-2 gap-6 mb-12">
-            <button
-              onClick={() => handleRoleSelect('agent')}
-              className={`py-6 px-8 border border-gray-600 transition-all duration-200 ${
-                selectedRole === 'agent'
-                  ? 'border-bearplus-green'
-                  : 'border-gray-600 hover:border-gray-500'
-              }`}
-            >
-              <h3 className={`text-xl font-medium ${
-                selectedRole === 'agent' ? 'text-bearplus-green' : 'text-gray-400'
-              }`}>Агент</h3>
-            </button>
-            
-            <button
-              onClick={() => handleRoleSelect('client')}
-              className={`py-6 px-8 border border-gray-600 transition-all duration-200 ${
-                selectedRole === 'client'
-                  ? 'border-bearplus-green'
-                  : 'border-gray-600 hover:border-gray-500'
-              }`}
-            >
-              <h3 className={`text-xl font-medium ${
-                selectedRole === 'client' ? 'text-bearplus-green' : 'text-gray-400'
-              }`}>Клиент</h3>
-            </button>
-          </div>
-          
-          <button
-            onClick={handleNext}
-            disabled={!selectedRole}
-            className="btn-green w-full max-w-md mx-auto py-3"
+  const handleUserTypeSelect = (userType: 'client' | 'agent') => {
+    setFormData(prev => ({ ...prev, userType }));
+    setCurrentStep('form');
+  };
+
+  const handleBackToUserType = () => {
+    setCurrentStep('userType');
+  };
+
+  // User Type Selection Step
+  const renderUserTypeSelection = () => (
+    <div className="min-h-screen bg-bearplus-bg flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-4xl w-full space-y-8">
+        {/* Header */}
+        <div className="text-center">
+          <Link to="/" className="inline-block">
+            <img
+              className="h-12 w-auto"
+              src="/logo.png"
+              alt="BearPlus"
+            />
+          </Link>
+          <h1 className="mt-6 text-4xl font-bold text-white">
+            Регистрация
+          </h1>
+          <p className="mt-4 text-lg text-gray-300">
+            Выберите, в роли кого вы хотите зарегистрироваться
+          </p>
+        </div>
+
+        {/* User Type Cards */}
+        <div className="mt-12 grid grid-cols-1 md:grid-cols-2 gap-8 max-w-2xl mx-auto">
+          {/* Agent Card */}
+          <div
+            onClick={() => handleUserTypeSelect('agent')}
+            className={`relative cursor-pointer group transform transition-all duration-300 hover:scale-105 ${
+              formData.userType === 'agent'
+                ? 'ring-2 ring-bearplus-green'
+                : 'hover:ring-2 hover:ring-gray-500'
+            }`}
           >
-            Далее
+            <div className="bg-gray-800 border border-gray-700 rounded-2xl p-8 text-center hover:bg-gray-750 transition-colors">
+              <div className="text-6xl mb-4">👨‍💼</div>
+              <h3 className="text-2xl font-bold text-gray-300 mb-2">Агент</h3>
+              <p className="text-gray-400 text-sm">
+                Работаете в сфере логистики и хотите предоставлять услуги клиентам
+              </p>
+            </div>
+          </div>
+
+          {/* Client Card */}
+          <div
+            onClick={() => handleUserTypeSelect('client')}
+            className={`relative cursor-pointer group transform transition-all duration-300 hover:scale-105 ${
+              formData.userType === 'client'
+                ? 'ring-2 ring-bearplus-green'
+                : 'hover:ring-2 hover:ring-gray-500'
+            }`}
+          >
+            <div className="bg-gray-800 border border-gray-700 rounded-2xl p-8 text-center hover:bg-gray-750 transition-colors">
+              <div className="text-6xl mb-4">🏢</div>
+              <h3 className="text-2xl font-bold text-bearplus-green mb-2">Клиент</h3>
+              <p className="text-gray-400 text-sm">
+                Ищете логистические услуги для вашего бизнеса
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* Back to Login */}
+        <div className="text-center">
+          <p className="text-sm text-gray-400">
+            Уже есть аккаунт?{' '}
+            <Link
+              to="/auth/login"
+              className="font-medium text-bearplus-green hover:text-bearplus-green/80"
+            >
+              Войти
+            </Link>
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+
+  // Registration Form Step
+  const renderRegistrationForm = () => (
+    <div className="min-h-screen bg-bearplus-bg flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-md w-full space-y-8">
+        {/* Header */}
+        <div className="text-center">
+          <Link to="/" className="inline-block">
+            <img
+              className="h-12 w-auto"
+              src="/logo.png"
+              alt="BearPlus"
+            />
+          </Link>
+          <h2 className="mt-6 text-3xl font-bold text-white">
+            Создать аккаунт
+          </h2>
+          <p className="mt-2 text-sm text-gray-400">
+            Регистрация как{' '}
+            <span className="text-bearplus-green font-medium">
+              {formData.userType === 'client' ? 'Клиент' : 'Агент'}
+            </span>
+          </p>
+          <button
+            type="button"
+            onClick={handleBackToUserType}
+            className="mt-2 text-sm text-gray-400 hover:text-bearplus-green underline"
+          >
+            Изменить тип аккаунта
           </button>
         </div>
-      </div>
-    );
-  }
 
-  // Этап 2: Форма регистрации клиента (та что мы шлифовали)
-  if (step === 'form' && formData.userType === 'client') {
-    return (
-      <div className="flex-1 flex items-center justify-center py-12">
-        <div className="w-full max-w-lg mx-auto">
-          {/* Кнопка "Изменить роль" */}
-          <div className="mb-6">
-            <button
-              onClick={handleBack}
-              className="text-bearplus-green hover:text-bearplus-green/80 transition-colors flex items-center space-x-2"
-            >
-              <span>←</span>
-              <span>Изменить роль</span>
-            </button>
-          </div>
-
-          {/* Заголовок */}
-          <div className="text-center mb-8">
-            <h1 className="text-3xl font-bold text-white">Регистрация клиента</h1>
-          </div>
-
-          {/* Форма */}
-          <form onSubmit={handleSubmit} className="space-y-4">
-            {/* Имя и Фамилия */}
+        {/* Registration Form */}
+        <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
+          <div className="space-y-4">
+            {/* Name Fields */}
             <div className="grid grid-cols-2 gap-4">
-              <input
-                type="text"
-                name="firstName"
-                value={formData.firstName}
-                onChange={handleChange}
-                className="input-field"
-                placeholder="Имя"
-                required
-              />
-              <input
-                type="text"
-                name="lastName"
-                value={formData.lastName}
-                onChange={handleChange}
-                className="input-field"
-                placeholder="Фамилия"
-                required
-              />
-            </div>
-
-            {/* Наименование организации */}
-            <input
-              type="text"
-              name="organization"
-              value={formData.organization}
-              onChange={handleChange}
-              className="input-field w-full"
-              placeholder="Наименование организации"
-            />
-
-            {/* Логин */}
-            <input
-              type="text"
-              name="login"
-              value={formData.login}
-              onChange={handleChange}
-              className="input-field w-full"
-              placeholder="Логин"
-              required
-            />
-
-            {/* E-mail и Телефон */}
-            <div className="grid grid-cols-2 gap-4">
-              <input
-                type="email"
-                name="email"
-                value={formData.email}
-                onChange={handleChange}
-                className="input-field"
-                placeholder="E-mail"
-                required
-              />
-              <input
-                type="tel"
-                name="phone"
-                value={formData.phone}
-                onChange={handleChange}
-                className="input-field"
-                placeholder="Телефон"
-                required
-              />
-            </div>
-
-            {/* Пароль и Подтверждение пароля */}
-            <div className="grid grid-cols-2 gap-4">
-              <div className="relative">
+              <div>
+                <label htmlFor="firstName" className="sr-only">
+                  Имя
+                </label>
                 <input
-                  type={showPassword ? 'text' : 'password'}
+                  id="firstName"
+                  name="firstName"
+                  type="text"
+                  required
+                  value={formData.firstName}
+                  onChange={handleInputChange}
+                  className={`input-field ${errors.firstName ? 'border-red-500' : ''}`}
+                  placeholder="Имя"
+                />
+                {errors.firstName && (
+                  <p className="mt-1 text-sm text-red-500">{errors.firstName}</p>
+                )}
+              </div>
+
+              <div>
+                <label htmlFor="lastName" className="sr-only">
+                  Фамилия
+                </label>
+                <input
+                  id="lastName"
+                  name="lastName"
+                  type="text"
+                  required
+                  value={formData.lastName}
+                  onChange={handleInputChange}
+                  className={`input-field ${errors.lastName ? 'border-red-500' : ''}`}
+                  placeholder="Фамилия"
+                />
+                {errors.lastName && (
+                  <p className="mt-1 text-sm text-red-500">{errors.lastName}</p>
+                )}
+              </div>
+            </div>
+
+            {/* Email */}
+            <div>
+              <label htmlFor="email" className="sr-only">
+                Email
+              </label>
+              <input
+                id="email"
+                name="email"
+                type="email"
+                autoComplete="email"
+                required
+                value={formData.email}
+                onChange={handleInputChange}
+                className={`input-field ${errors.email ? 'border-red-500' : ''}`}
+                placeholder="Email адрес"
+              />
+              {errors.email && (
+                <p className="mt-1 text-sm text-red-500">{errors.email}</p>
+              )}
+            </div>
+
+            {/* Password Fields */}
+            <div className="space-y-4">
+              <div className="relative">
+                <label htmlFor="password" className="sr-only">
+                  Пароль
+                </label>
+                <input
+                  id="password"
                   name="password"
+                  type={showPassword ? 'text' : 'password'}
+                  autoComplete="new-password"
+                  required
                   value={formData.password}
-                  onChange={handleChange}
-                  className="input-field w-full pr-12"
+                  onChange={handleInputChange}
+                  className={`input-field pr-10 ${errors.password ? 'border-red-500' : ''}`}
                   placeholder="Пароль"
-                  required
                 />
                 <button
                   type="button"
+                  className="absolute inset-y-0 right-0 pr-3 flex items-center"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-bearplus-green hover:text-bearplus-green/80"
                 >
-                  <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
-                    <path d="M10 3C5 3 1.73 7.11 1 10c.73 2.89 4 7 9 7s8.27-4.11 9-7c-.73-2.89-4-7-9-7zm0 12c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/>
-                  </svg>
+                  <span className="text-gray-400 hover:text-gray-300">
+                    {showPassword ? '🙈' : '👁️'}
+                  </span>
                 </button>
+                {errors.password && (
+                  <p className="mt-1 text-sm text-red-500">{errors.password}</p>
+                )}
               </div>
+
               <div className="relative">
+                <label htmlFor="confirmPassword" className="sr-only">
+                  Подтвердите пароль
+                </label>
                 <input
-                  type={showConfirmPassword ? 'text' : 'password'}
+                  id="confirmPassword"
                   name="confirmPassword"
-                  value={formData.confirmPassword}
-                  onChange={handleChange}
-                  className="input-field w-full pr-12"
-                  placeholder="Подтверждение пароля"
+                  type={showConfirmPassword ? 'text' : 'password'}
+                  autoComplete="new-password"
                   required
+                  value={formData.confirmPassword}
+                  onChange={handleInputChange}
+                  className={`input-field pr-10 ${errors.confirmPassword ? 'border-red-500' : ''}`}
+                  placeholder="Подтвердите пароль"
                 />
                 <button
                   type="button"
+                  className="absolute inset-y-0 right-0 pr-3 flex items-center"
                   onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-bearplus-green hover:text-bearplus-green/80"
                 >
-                  <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
-                    <path d="M10 3C5 3 1.73 7.11 1 10c.73 2.89 4 7 9 7s8.27-4.11 9-7c-.73-2.89-4-7-9-7zm0 12c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/>
-                  </svg>
+                  <span className="text-gray-400 hover:text-gray-300">
+                    {showConfirmPassword ? '🙈' : '👁️'}
+                  </span>
                 </button>
+                {errors.confirmPassword && (
+                  <p className="mt-1 text-sm text-red-500">{errors.confirmPassword}</p>
+                )}
               </div>
             </div>
 
-            {/* Текст о заполнении */}
-            <div className="mt-6">
-              <p className="text-gray-400 text-sm">
-                *Все поля, кроме наименования компании, обязательны для заполнения
-              </p>
-            </div>
-
-            {/* Чекбокс согласия */}
-            <div className="mt-4">
-              <label className="flex items-start space-x-3">
-                <input
-                  type="checkbox"
-                  name="agree"
-                  checked={formData.agree}
-                  onChange={handleChange}
-                  className="checkbox-custom mt-0.5 flex-shrink-0"
-                  required
-                />
-                <span className="text-gray-300 text-sm">
-                  Согласен(-на) с{' '}
-                  <Link to="/privacy" className="text-bearplus-green hover:underline">
-                    политикой конфиденциальности
-                  </Link>
-                  {' '}и{' '}
-                  <Link to="/terms" className="text-bearplus-green hover:underline">
-                    условиями использования сервиса
-                  </Link>
-                </span>
+            {/* Phone */}
+            <div>
+              <label htmlFor="phone" className="sr-only">
+                Телефон
               </label>
-            </div>
-
-            {/* Ошибки */}
-            {(errors.general || error) && (
-              <div className="text-red-400 text-sm text-center mt-4">
-                {errors.general || error}
-              </div>
-            )}
-
-            {/* Кнопка регистрации */}
-            <button
-              type="submit"
-              className="btn-green w-full mt-8 py-3"
-              disabled={!formData.agree || isLoading}
-            >
-              {isLoading ? 'Регистрация...' : 'Зарегистрироваться'}
-            </button>
-          </form>
-        </div>
-      </div>
-    );
-  }
-
-  // Этап 2: Форма регистрации агента
-  if (step === 'form' && formData.userType === 'agent') {
-    return (
-      <div className="flex-1 flex items-center justify-center py-12">
-        <div className="w-full max-w-lg mx-auto">
-          {/* Кнопка "Изменить роль" */}
-          <div className="mb-6">
-            <button
-              onClick={handleBack}
-              className="text-bearplus-green hover:text-bearplus-green/80 transition-colors flex items-center space-x-2"
-            >
-              <span>←</span>
-              <span>Изменить роль</span>
-            </button>
-          </div>
-
-          {/* Заголовок */}
-          <div className="text-center mb-8">
-            <h1 className="text-3xl font-bold text-white">Регистрация агента</h1>
-          </div>
-
-          {/* Форма */}
-          <form onSubmit={handleSubmit} className="space-y-4">
-            {/* Имя и Фамилия */}
-            <div className="grid grid-cols-2 gap-4">
               <input
-                type="text"
-                name="firstName"
-                value={formData.firstName}
-                onChange={handleChange}
-                className="input-field"
-                placeholder="Имя"
-                required
-              />
-              <input
-                type="text"
-                name="lastName"
-                value={formData.lastName}
-                onChange={handleChange}
-                className="input-field"
-                placeholder="Фамилия"
-                required
-              />
-            </div>
-
-            {/* Логин */}
-            <input
-              type="text"
-              name="login"
-              value={formData.login}
-              onChange={handleChange}
-              className="input-field w-full"
-              placeholder="Логин"
-              required
-            />
-
-            {/* E-mail и Телефон */}
-            <div className="grid grid-cols-2 gap-4">
-              <input
-                type="email"
-                name="email"
-                value={formData.email}
-                onChange={handleChange}
-                className="input-field"
-                placeholder="E-mail"
-                required
-              />
-              <input
-                type="tel"
+                id="phone"
                 name="phone"
-                value={formData.phone}
-                onChange={handleChange}
-                className="input-field"
-                placeholder="Телефон"
+                type="tel"
+                autoComplete="tel"
                 required
+                value={formData.phone}
+                onChange={handleInputChange}
+                className={`input-field ${errors.phone ? 'border-red-500' : ''}`}
+                placeholder="Телефон"
               />
+              {errors.phone && (
+                <p className="mt-1 text-sm text-red-500">{errors.phone}</p>
+              )}
             </div>
 
-            {/* Тип организации */}
-            <CustomSelect
-              name="organizationType"
-              value={formData.organizationType}
-              onChange={(value) => setFormData(prev => ({ ...prev, organizationType: value as 'llc' | 'jsc' | 'individual' | 'foreign' | 'other' }))}
-              placeholder="Тип организации"
-              options={[
-                { value: 'medicine', label: 'Медицина' },
-                { value: 'agriculture', label: 'Овощеводство' },
-                { value: 'equipment', label: 'Продажа детских товаров' },
-                { value: 'production', label: 'Производство сельхозтехники' },
-                { value: 'repair', label: 'Ремонт цифровой техники' }
-              ]}
-            />
-
-            {/* Тип деятельности */}
-            <CustomSelect
-              name="activity"
-              value={formData.activity}
-              onChange={(value) => setFormData(prev => ({ ...prev, activity: value as 'freight_forwarder' | 'customs_broker' | 'transport_company' | 'logistics' | 'other' }))}
-              placeholder="Тип деятельности"
-              options={[
-                { value: 'production', label: 'Производство сельхозтехники' },
-                { value: 'medicine', label: 'Медицина' },
-                { value: 'agriculture', label: 'Овощеводство' },
-                { value: 'equipment', label: 'Продажа детских товаров' },
-                { value: 'repair', label: 'Ремонт цифровой техники' }
-              ]}
-            />
-
-            {/* Текст о заполнении */}
-            <div className="mt-6">
-              <p className="text-gray-400 text-sm">
-                *Все поля обязательны для заполнения
-              </p>
-            </div>
-
-            {/* Чекбоксы согласия */}
-            <div className="space-y-3">
-              <label className="flex items-start space-x-3">
+            {/* Company and Position */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label htmlFor="company" className="sr-only">
+                  Компания
+                </label>
                 <input
-                  type="checkbox"
-                  name="agreeTerms"
-                  checked={formData.agreeTerms}
-                  onChange={handleChange}
-                  className="checkbox-custom mt-0.5 flex-shrink-0"
+                  id="company"
+                  name="company"
+                  type="text"
                   required
+                  value={formData.company}
+                  onChange={handleInputChange}
+                  className={`input-field ${errors.company ? 'border-red-500' : ''}`}
+                  placeholder="Название компании"
                 />
-                <span className="text-gray-300 text-sm">
-                  Согласен(-на) с{' '}
-                  <Link to="/privacy" className="text-bearplus-green hover:underline">
-                    политикой конфиденциальности
-                  </Link>
-                  {' '}и{' '}
-                  <Link to="/terms" className="text-bearplus-green hover:underline">
-                    условиями использования сервиса
-                  </Link>
-                </span>
-              </label>
-
-              <label className="flex items-start space-x-3">
-                <input
-                  type="checkbox"
-                  name="agreePrivacy"
-                  checked={formData.agreePrivacy}
-                  onChange={handleChange}
-                  className="checkbox-custom mt-0.5 flex-shrink-0"
-                  required
-                />
-                <span className="text-gray-300 text-sm">
-                  Согласен с{' '}
-                  <Link to="/privacy" className="text-bearplus-green hover:underline">
-                    публичной офертой
-                  </Link>
-                </span>
-              </label>
-            </div>
-
-            {/* Ошибки */}
-            {(errors.general || error) && (
-              <div className="text-red-400 text-sm text-center mt-4">
-                {errors.general || error}
+                {errors.company && (
+                  <p className="mt-1 text-sm text-red-500">{errors.company}</p>
+                )}
               </div>
-            )}
 
-            {/* Кнопка регистрации */}
+              <div>
+                <label htmlFor="position" className="sr-only">
+                  Должность
+                </label>
+                <input
+                  id="position"
+                  name="position"
+                  type="text"
+                  value={formData.position}
+                  onChange={handleInputChange}
+                  className="input-field"
+                  placeholder="Должность"
+                />
+              </div>
+            </div>
+
+            {/* Checkboxes */}
+            <div className="space-y-4">
+              <div className="flex items-start">
+                <div className="flex items-center h-5">
+                  <input
+                    id="acceptTerms"
+                    name="acceptTerms"
+                    type="checkbox"
+                    checked={formData.acceptTerms}
+                    onChange={handleInputChange}
+                    className={`w-4 h-4 text-bearplus-green bg-gray-700 border-gray-600 rounded focus:ring-bearplus-green focus:ring-2 ${
+                      errors.acceptTerms ? 'border-red-500' : ''
+                    }`}
+                  />
+                </div>
+                <div className="ml-3 text-sm">
+                  <label htmlFor="acceptTerms" className="text-gray-300">
+                    Я согласен с{' '}
+                    <Link to="/terms" className="text-bearplus-green hover:text-bearplus-green/80">
+                      условиями использования
+                    </Link>{' '}
+                    и{' '}
+                    <Link to="/privacy" className="text-bearplus-green hover:text-bearplus-green/80">
+                      политикой конфиденциальности
+                    </Link>
+                  </label>
+                  {errors.acceptTerms && (
+                    <p className="mt-1 text-sm text-red-500">{errors.acceptTerms}</p>
+                  )}
+                </div>
+              </div>
+
+              <div className="flex items-start">
+                <div className="flex items-center h-5">
+                  <input
+                    id="acceptNewsletter"
+                    name="acceptNewsletter"
+                    type="checkbox"
+                    checked={formData.acceptNewsletter}
+                    onChange={handleInputChange}
+                    className="w-4 h-4 text-bearplus-green bg-gray-700 border-gray-600 rounded focus:ring-bearplus-green focus:ring-2"
+                  />
+                </div>
+                <div className="ml-3 text-sm">
+                  <label htmlFor="acceptNewsletter" className="text-gray-300">
+                    Подписаться на новости и специальные предложения
+                  </label>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Submit Button */}
+          <div>
             <button
               type="submit"
-              className="btn-green w-full mt-8 py-3"
-              disabled={!formData.agreeTerms || !formData.agreePrivacy || isLoading}
+              disabled={isLoading}
+              className="group relative w-full flex justify-center py-3 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-bearplus-green hover:bg-bearplus-green/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-bearplus-green disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {isLoading ? 'Регистрация...' : 'Зарегистрироваться'}
+              {isLoading ? (
+                <div className="flex items-center">
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                  Создание аккаунта...
+                </div>
+              ) : (
+                'Создать аккаунт'
+              )}
             </button>
-          </form>
-        </div>
-      </div>
-    );
-  }
+          </div>
 
-  // Этап 3: Успешная регистрация
-  if (step === 'verification') {
-    return (
-      <div className="flex-1 flex items-center justify-center py-12">
-        <div className="form-container animate-fade-in">
-          <div className="text-center mb-8">
-            <div className="w-16 h-16 bg-bearplus-green/20 rounded-full flex items-center justify-center mx-auto mb-6">
-              <span className="text-3xl">✅</span>
-            </div>
-            <h1 className="text-3xl font-bold text-white mb-4">Регистрация завершена!</h1>
-            <p className="text-gray-400">
-              Мы отправили письмо с подтверждением на ваш email.
-              <br />
-              Проверьте почту и перейдите по ссылке для активации аккаунта.
+          {/* Additional Info */}
+          <div className="text-center text-sm text-gray-400">
+            <p>
+              После регистрации на указанный email будет отправлено письмо для подтверждения аккаунта
             </p>
           </div>
-
-          <div className="space-y-6">
-            <button
-              type="button"
-              onClick={() => navigate('/login')}
-              className="btn-green w-full"
-            >
-              Перейти к входу
-            </button>
-
-            <div className="text-center">
-              <span className="text-gray-400">Не получили письмо? </span>
-              <button
-                type="button"
-                onClick={() => {
-                  // TODO: Implement resend email
-                  console.log('Resending email...');
-                }}
-                className="text-bearplus-green hover:text-bearplus-green/80 transition-colors font-medium"
-              >
-                Отправить повторно
-              </button>
-            </div>
-          </div>
-        </div>
+        </form>
       </div>
-    );
-  }
+    </div>
+  );
 
-  return null;
+  return currentStep === 'userType' ? renderUserTypeSelection() : renderRegistrationForm();
 };
 
 export default RegisterPage;

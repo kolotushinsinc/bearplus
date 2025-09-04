@@ -1,6 +1,7 @@
 import * as React from 'react';
 import { useState, useEffect } from 'react';
 import { useAppSelector } from '../../hooks/redux';
+import { apiService } from '../../services/apiService';
 
 interface Order {
   id: string;
@@ -66,94 +67,22 @@ const OrdersManagement: React.FC = () => {
   const fetchOrders = async () => {
     try {
       setIsLoading(true);
-      // Mock data - replace with API call
-      const mockOrders: Order[] = [
-        {
-          id: '1',
-          orderNumber: 'ORD-2024-001',
-          status: 'in_transit',
-          transportType: 'freight',
-          route: {
-            departure: 'Москва',
-            arrival: 'Шанхай'
-          },
-          cargo: {
-            description: 'Промышленное оборудование',
-            weight: 15000,
-            containerType: '40ft',
-            isDangerous: false
-          },
-          dates: {
-            created: '2024-01-15T10:00:00Z',
-            estimatedDeparture: '2024-01-20T08:00:00Z',
-            estimatedArrival: '2024-02-25T14:00:00Z',
-            actualDeparture: '2024-01-20T09:30:00Z'
-          },
-          tracking: {
-            currentLocation: 'Порт Шанхай',
-            vesselName: 'MSC MAYA',
-            vesselIMO: 'IMO9876543',
-            lastUpdate: '2024-01-16T12:00:00Z'
-          },
-          cost: {
-            total: 125000,
-            currency: 'RUB',
-            paid: true
-          },
-          documents: [
-            { id: '1', name: 'Commercial_Invoice.pdf', type: 'invoice', uploadedAt: '2024-01-15T10:30:00Z' },
-            { id: '2', name: 'Packing_List.pdf', type: 'packing_list', uploadedAt: '2024-01-15T10:35:00Z' }
-          ],
-          stages: [
-            { id: '1', name: 'Подача документов', status: 'completed', description: 'Документы поданы и проверены', completedAt: '2024-01-15T12:00:00Z', requiresClientConfirmation: false },
-            { id: '2', name: 'Бронирование места', status: 'completed', description: 'Место на судне забронировано', completedAt: '2024-01-16T10:00:00Z', requiresClientConfirmation: false },
-            { id: '3', name: 'Погрузка', status: 'completed', description: 'Груз погружен на судно', completedAt: '2024-01-20T10:00:00Z', requiresClientConfirmation: false },
-            { id: '4', name: 'Отправление', status: 'in_progress', description: 'Судно в пути', requiresClientConfirmation: false },
-            { id: '5', name: 'Прибытие', status: 'pending', description: 'Ожидается прибытие в порт назначения', requiresClientConfirmation: false },
-            { id: '6', name: 'Выгрузка', status: 'pending', description: 'Выгрузка груза в порту', requiresClientConfirmation: true }
-          ]
-        },
-        {
-          id: '2',
-          orderNumber: 'ORD-2024-002',
-          status: 'pending',
-          transportType: 'auto',
-          route: {
-            departure: 'СПб',
-            arrival: 'Хельсинки'
-          },
-          cargo: {
-            description: 'Текстильная продукция',
-            weight: 2500,
-            containerType: 'truck',
-            isDangerous: false
-          },
-          dates: {
-            created: '2024-01-16T14:00:00Z',
-            estimatedDeparture: '2024-01-18T06:00:00Z',
-            estimatedArrival: '2024-01-18T18:00:00Z'
-          },
-          cost: {
-            total: 45000,
-            currency: 'RUB',
-            paid: false
-          },
-          documents: [],
-          stages: [
-            { id: '1', name: 'Подтверждение заявки', status: 'requires_confirmation', description: 'Требуется подтверждение условий доставки', requiresClientConfirmation: true },
-            { id: '2', name: 'Подготовка документов', status: 'pending', description: 'Подготовка документов для перевозки', requiresClientConfirmation: false },
-            { id: '3', name: 'Забор груза', status: 'pending', description: 'Забор груза у отправителя', requiresClientConfirmation: false },
-            { id: '4', name: 'Доставка', status: 'pending', description: 'Доставка до места назначения', requiresClientConfirmation: false }
-          ]
-        }
-      ];
-
-      setTimeout(() => {
-        setOrders(mockOrders);
-        setIsLoading(false);
-      }, 1000);
+      const response = await apiService.orders.getOrders({
+        status: filter === 'all' ? undefined : filter,
+        page: 1,
+        limit: 20
+      });
+      
+      if (response.success) {
+        setOrders(response.data || []);
+      } else {
+        console.error('Failed to fetch orders:', response);
+        setOrders([]);
+      }
     } catch (error) {
       console.error('Error fetching orders:', error);
+      setOrders([]);
+    } finally {
       setIsLoading(false);
     }
   };
@@ -198,25 +127,29 @@ const OrdersManagement: React.FC = () => {
 
   const confirmStage = async (orderId: string, stageId: string) => {
     try {
-      // API call to confirm stage
-      console.log('Confirming stage:', orderId, stageId);
+      const response = await apiService.orders.confirmStage(orderId, stageId);
       
-      // Update local state
-      setOrders(prev => prev.map(order => {
-        if (order.id === orderId) {
-          return {
-            ...order,
-            stages: order.stages.map(stage => 
-              stage.id === stageId 
-                ? { ...stage, status: 'completed' as const, completedAt: new Date().toISOString() }
-                : stage
-            )
-          };
-        }
-        return order;
-      }));
+      if (response.success) {
+        // Update local state
+        setOrders(prev => prev.map(order => {
+          if (order.id === orderId) {
+            return {
+              ...order,
+              stages: order.stages.map(stage =>
+                stage.id === stageId
+                  ? { ...stage, status: 'completed' as const, completedAt: new Date().toISOString() }
+                  : stage
+              )
+            };
+          }
+          return order;
+        }));
+      } else {
+        alert('Ошибка при подтверждении этапа: ' + response.message);
+      }
     } catch (error) {
       console.error('Error confirming stage:', error);
+      alert('Ошибка при подтверждении этапа');
     }
   };
 
@@ -229,33 +162,41 @@ const OrdersManagement: React.FC = () => {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8 animate-fade-in">
+      {/* Modern Header */}
       <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold text-white">Управление заявками</h2>
+        <div className="flex items-center gap-4">
+          <div className="p-3 bg-tech-primary/10 rounded-xl border border-tech-primary/20">
+            <span className="text-2xl">📋</span>
+          </div>
+          <div>
+            <h2 className="text-tech-title">Управление заявками</h2>
+            <p className="text-tech-caption">Отслеживайте статус ваших грузов</p>
+          </div>
+        </div>
         <button
           onClick={() => setShowCreateOrder(true)}
-          className="btn-primary"
+          className="btn-primary btn-sm"
         >
-          Создать заявку
+          ➕ Создать заявку
         </button>
       </div>
 
-      {/* Filters */}
-      <div className="flex gap-2">
+      {/* Modern Filters */}
+      <div className="filter-bar">
         {[
-          { key: 'all', label: 'Все заявки' },
-          { key: 'active', label: 'Активные' },
-          { key: 'completed', label: 'Завершенные' }
+          { key: 'all', label: 'Все заявки', icon: '📊' },
+          { key: 'active', label: 'Активные', icon: '🔄' },
+          { key: 'completed', label: 'Завершенные', icon: '✅' }
         ].map((filterOption) => (
           <button
             key={filterOption.key}
             onClick={() => setFilter(filterOption.key as any)}
-            className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
-              filter === filterOption.key
-                ? 'bg-bearplus-green text-black'
-                : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+            className={`filter-btn flex items-center gap-2 ${
+              filter === filterOption.key ? 'active' : ''
             }`}
           >
+            <span className="text-xs">{filterOption.icon}</span>
             {filterOption.label}
           </button>
         ))}
@@ -430,25 +371,38 @@ const OrdersManagement: React.FC = () => {
         </div>
       )}
 
-      {/* Create Order Modal placeholder */}
+      {/* Modern Create Order Modal */}
       {showCreateOrder && (
-        <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4" onClick={() => setShowCreateOrder(false)}>
-          <div className="bg-bearplus-card-dark rounded-xl p-6 w-full max-w-2xl border border-gray-700" onClick={(e) => e.stopPropagation()}>
-            <h3 className="text-xl font-bold text-white mb-4">Создание новой заявки</h3>
-            <p className="text-gray-300 mb-4">Используйте калькулятор доставки для создания заявки</p>
-            <div className="flex gap-4">
+        <div className="fixed inset-0 modal-backdrop z-50 flex items-center justify-center p-4" onClick={() => setShowCreateOrder(false)}>
+          <div className="modal-content p-8 w-full max-w-lg animate-fade-in" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center gap-4 mb-6">
+              <div className="p-3 bg-tech-primary/10 rounded-xl border border-tech-primary/20">
+                <span className="text-2xl">➕</span>
+              </div>
+              <div>
+                <h3 className="text-tech-title">Создание новой заявки</h3>
+                <p className="text-tech-caption">Используйте калькулятор доставки</p>
+              </div>
+            </div>
+            
+            <div className="alert alert-info mb-6">
+              <span className="text-lg">💡</span>
+              <span>Перейдите в калькулятор для создания заявки с точными расчетами</span>
+            </div>
+            
+            <div className="flex gap-3">
               <button
                 onClick={() => {
                   setShowCreateOrder(false);
                   // Switch to calculator tab - would need to pass callback up
                 }}
-                className="btn-primary"
+                className="btn-primary flex-1"
               >
-                Перейти к калькулятору
+                🧮 Калькулятор
               </button>
               <button
                 onClick={() => setShowCreateOrder(false)}
-                className="btn-secondary"
+                className="btn-secondary btn-sm px-6"
               >
                 Отмена
               </button>

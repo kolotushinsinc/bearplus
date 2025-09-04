@@ -1,659 +1,835 @@
 import * as React from 'react';
-import { useState } from 'react';
-import { useAppSelector } from '../../hooks/redux';
+import { useState, useEffect } from 'react';
+import { useAppSelector, useAppDispatch } from '../../hooks/redux';
 
-interface ProfileSettingsProps {
-  onLogout: () => void;
-}
-
-interface ProfileFormData {
+interface UserProfile {
+  id: string;
+  email: string;
   firstName: string;
   lastName: string;
   phone: string;
-  companyName?: string;
-  organizationType?: string;
-  activityType?: string;
-  language: string;
+  company: string;
+  position: string;
+  address: {
+    street: string;
+    city: string;
+    state: string;
+    zipCode: string;
+    country: string;
+  };
+  userType: 'client' | 'agent' | 'admin';
+  avatar?: string;
+  preferences: {
+    language: 'ru' | 'en';
+    currency: 'RUB' | 'USD' | 'EUR';
+    timezone: string;
+    notifications: {
+      email: boolean;
+      sms: boolean;
+      push: boolean;
+      orderUpdates: boolean;
+      priceAlerts: boolean;
+      newsletters: boolean;
+    };
+  };
+  security: {
+    twoFactorEnabled: boolean;
+    lastPasswordChange: string;
+    loginSessions: Array<{
+      id: string;
+      device: string;
+      location: string;
+      lastActive: string;
+      isCurrent: boolean;
+    }>;
+  };
 }
 
-interface PasswordFormData {
+interface PasswordChangeForm {
   currentPassword: string;
   newPassword: string;
   confirmPassword: string;
 }
 
-interface NotificationSettings {
-  email: boolean;
-  sms: boolean;
-  push: boolean;
-  marketing: boolean;
-}
-
-const ProfileSettings: React.FC<ProfileSettingsProps> = ({ onLogout }) => {
+const ProfileSettings: React.FC = () => {
   const { user } = useAppSelector((state) => state.auth);
-  const [activeTab, setActiveTab] = useState<'profile' | 'password' | 'notifications' | 'security'>('profile');
+  const dispatch = useAppDispatch();
+  const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState<'general' | 'security' | 'notifications' | 'preferences'>('general');
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
-
-  const [profileForm, setProfileForm] = useState<ProfileFormData>({
-    firstName: user?.firstName || '',
-    lastName: user?.lastName || '',
-    phone: user?.phone || '',
-    companyName: user?.companyName || '',
-    organizationType: user?.organizationType || '',
-    activityType: user?.activityType || '',
-    language: user?.language || 'ru'
-  });
-
-  const [passwordForm, setPasswordForm] = useState<PasswordFormData>({
+  const [showPasswordModal, setShowPasswordModal] = useState(false);
+  const [passwordForm, setPasswordForm] = useState<PasswordChangeForm>({
     currentPassword: '',
     newPassword: '',
     confirmPassword: ''
   });
+  const [avatarFile, setAvatarFile] = useState<File | null>(null);
+  const [previewAvatar, setPreviewAvatar] = useState<string>('');
 
-  const [notifications, setNotifications] = useState<NotificationSettings>({
-    email: true,
-    sms: false,
-    push: true,
-    marketing: false
-  });
+  useEffect(() => {
+    fetchProfile();
+  }, []);
 
-  const organizationTypes = [
-    { value: 'llc', label: 'ООО' },
-    { value: 'jsc', label: 'АО' },
-    { value: 'individual', label: 'ИП' },
-    { value: 'foreign', label: 'Иностранная компания' },
-    { value: 'other', label: 'Другое' }
-  ];
+  const fetchProfile = async () => {
+    try {
+      setIsLoading(true);
+      
+      // Mock profile data - replace with API call
+      const mockProfile: UserProfile = {
+        id: user?.id || 'user1',
+        email: user?.email || 'client@example.com',
+        firstName: user?.firstName || 'Иван',
+        lastName: user?.lastName || 'Петров',
+        phone: '+7 (999) 123-45-67',
+        company: 'ООО "Торговый дом"',
+        position: 'Логист',
+        address: {
+          street: 'ул. Невский проспект, 100',
+          city: 'Санкт-Петербург',
+          state: 'Ленинградская область',
+          zipCode: '190000',
+          country: 'Россия'
+        },
+        userType: user?.userType || 'client',
+        avatar: '/avatars/user1.jpg',
+        preferences: {
+          language: 'ru',
+          currency: 'RUB',
+          timezone: 'Europe/Moscow',
+          notifications: {
+            email: true,
+            sms: true,
+            push: true,
+            orderUpdates: true,
+            priceAlerts: false,
+            newsletters: true
+          }
+        },
+        security: {
+          twoFactorEnabled: false,
+          lastPasswordChange: '2024-01-01T10:00:00Z',
+          loginSessions: [
+            {
+              id: 'session1',
+              device: 'Chrome (Windows)',
+              location: 'Санкт-Петербург, Россия',
+              lastActive: '2024-01-16T15:30:00Z',
+              isCurrent: true
+            },
+            {
+              id: 'session2',
+              device: 'Safari (iPhone)',
+              location: 'Москва, Россия',
+              lastActive: '2024-01-15T08:20:00Z',
+              isCurrent: false
+            }
+          ]
+        }
+      };
 
-  const activityTypes = [
-    { value: 'freight_forwarder', label: 'Экспедитор' },
-    { value: 'customs_broker', label: 'Таможенный брокер' },
-    { value: 'transport_company', label: 'Транспортная компания' },
-    { value: 'logistics', label: 'Логистика' },
-    { value: 'other', label: 'Другое' }
-  ];
-
-  const languages = [
-    { value: 'ru', label: 'Русский' },
-    { value: 'en', label: 'English' },
-    { value: 'zh', label: '中文' }
-  ];
-
-  const handleProfileInputChange = (field: keyof ProfileFormData, value: string) => {
-    setProfileForm(prev => ({
-      ...prev,
-      [field]: value
-    }));
+      setTimeout(() => {
+        setProfile(mockProfile);
+        setIsLoading(false);
+      }, 1000);
+    } catch (error) {
+      console.error('Error fetching profile:', error);
+      setIsLoading(false);
+    }
   };
 
-  const handlePasswordInputChange = (field: keyof PasswordFormData, value: string) => {
-    setPasswordForm(prev => ({
-      ...prev,
-      [field]: value
-    }));
-  };
+  const handleSaveProfile = async () => {
+    if (!profile) return;
 
-  const handleNotificationChange = (field: keyof NotificationSettings, value: boolean) => {
-    setNotifications(prev => ({
-      ...prev,
-      [field]: value
-    }));
-  };
-
-  const saveProfile = async () => {
     try {
       setIsSaving(true);
       
-      // API call to update profile
-      const response = await fetch('/api/users/profile', {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(profileForm)
-      });
-
-      if (response.ok) {
-        alert('Профиль успешно обновлен');
+      // In production, send profile data to API
+      console.log('Saving profile:', profile);
+      
+      setTimeout(() => {
+        setIsSaving(false);
         setIsEditing(false);
-      } else {
-        alert('Ошибка при обновлении профиля');
-      }
+        // Show success message
+      }, 1000);
     } catch (error) {
-      console.error('Profile update error:', error);
-      alert('Ошибка при обновлении профиля');
-    } finally {
+      console.error('Error saving profile:', error);
       setIsSaving(false);
     }
   };
 
-  const changePassword = async () => {
+  const handlePasswordChange = async () => {
     if (passwordForm.newPassword !== passwordForm.confirmPassword) {
-      alert('Пароли не совпадают');
-      return;
-    }
-
-    if (passwordForm.newPassword.length < 6) {
-      alert('Пароль должен содержать минимум 6 символов');
+      alert('Новые пароли не совпадают');
       return;
     }
 
     try {
       setIsSaving(true);
       
-      // API call to change password
-      const response = await fetch('/api/users/change-password', {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          currentPassword: passwordForm.currentPassword,
-          newPassword: passwordForm.newPassword
-        })
-      });
-
-      if (response.ok) {
-        alert('Пароль успешно изменен');
+      // In production, send password change request to API
+      console.log('Changing password');
+      
+      setTimeout(() => {
+        setIsSaving(false);
+        setShowPasswordModal(false);
         setPasswordForm({
           currentPassword: '',
           newPassword: '',
           confirmPassword: ''
         });
-      } else {
-        alert('Ошибка при смене пароля');
-      }
+        if (profile) {
+          setProfile({
+            ...profile,
+            security: {
+              ...profile.security,
+              lastPasswordChange: new Date().toISOString()
+            }
+          });
+        }
+      }, 1000);
     } catch (error) {
-      console.error('Password change error:', error);
-      alert('Ошибка при смене пароля');
-    } finally {
+      console.error('Error changing password:', error);
       setIsSaving(false);
     }
   };
 
-  const saveNotifications = async () => {
+  const handleAvatarChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file && file.type.startsWith('image/')) {
+      setAvatarFile(file);
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        setPreviewAvatar(e.target?.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleUploadAvatar = async () => {
+    if (!avatarFile || !profile) return;
+
     try {
       setIsSaving(true);
       
-      // API call to update notification settings
-      const response = await fetch('/api/users/notifications', {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(notifications)
-      });
-
-      if (response.ok) {
-        alert('Настройки уведомлений сохранены');
-      } else {
-        alert('Ошибка при сохранении настроек');
-      }
+      // In production, upload avatar to API
+      console.log('Uploading avatar:', avatarFile);
+      
+      setTimeout(() => {
+        setProfile({
+          ...profile,
+          avatar: previewAvatar
+        });
+        setAvatarFile(null);
+        setPreviewAvatar('');
+        setIsSaving(false);
+      }, 1000);
     } catch (error) {
-      console.error('Notifications update error:', error);
-      alert('Ошибка при сохранении настроек');
-    } finally {
+      console.error('Error uploading avatar:', error);
       setIsSaving(false);
     }
   };
 
-  const exportData = () => {
-    // Create export data
-    const exportData = {
-      profile: user,
-      exportDate: new Date().toISOString(),
-      dataTypes: ['profile', 'orders', 'documents', 'messages']
-    };
-
-    // Download as JSON
-    const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `bearplus_data_export_${new Date().toISOString().split('T')[0]}.json`;
-    link.click();
-    URL.revokeObjectURL(url);
-  };
-
-  const deleteAccount = async () => {
-    if (!confirm('Вы уверены, что хотите удалить аккаунт? Это действие необратимо.')) return;
-    
-    const confirmText = prompt('Введите "УДАЛИТЬ" для подтверждения:');
-    if (confirmText !== 'УДАЛИТЬ') return;
+  const handleLogoutSession = async (sessionId: string) => {
+    if (!profile) return;
 
     try {
-      // API call to delete account
-      const response = await fetch('/api/users/delete-account', {
-        method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json',
+      // In production, logout specific session via API
+      console.log('Logging out session:', sessionId);
+      
+      setProfile({
+        ...profile,
+        security: {
+          ...profile.security,
+          loginSessions: profile.security.loginSessions.filter(s => s.id !== sessionId)
         }
       });
-
-      if (response.ok) {
-        alert('Аккаунт успешно удален');
-        onLogout();
-      } else {
-        alert('Ошибка при удалении аккаунта');
-      }
     } catch (error) {
-      console.error('Account deletion error:', error);
-      alert('Ошибка при удалении аккаунта');
+      console.error('Error logging out session:', error);
     }
   };
 
-  const tabs = [
-    { id: 'profile', label: 'Профиль', icon: '👤' },
-    { id: 'password', label: 'Пароль', icon: '🔒' },
-    { id: 'notifications', label: 'Уведомления', icon: '🔔' },
-    { id: 'security', label: 'Безопасность', icon: '🛡️' }
-  ];
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('ru-RU', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  };
 
-  const renderProfileTab = () => (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h3 className="text-xl font-semibold text-white">Информация профиля</h3>
-        {!isEditing ? (
-          <button
-            onClick={() => setIsEditing(true)}
-            className="btn-secondary"
-          >
-            Редактировать
-          </button>
-        ) : (
-          <div className="flex gap-2">
-            <button
-              onClick={saveProfile}
-              disabled={isSaving}
-              className="btn-primary"
-            >
-              {isSaving ? 'Сохранение...' : 'Сохранить'}
-            </button>
-            <button
-              onClick={() => {
-                setIsEditing(false);
-                // Reset form
-                setProfileForm({
-                  firstName: user?.firstName || '',
-                  lastName: user?.lastName || '',
-                  phone: user?.phone || '',
-                  companyName: user?.companyName || '',
-                  organizationType: user?.organizationType || '',
-                  activityType: user?.activityType || '',
-                  language: user?.language || 'ru'
-                });
-              }}
-              className="btn-secondary"
-            >
-              Отмена
-            </button>
-          </div>
-        )}
+  if (isLoading || !profile) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <div className="text-white text-xl">Загрузка профиля...</div>
       </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div>
-          <label className="block text-sm font-medium text-gray-300 mb-2">Имя *</label>
-          {isEditing ? (
-            <input
-              type="text"
-              value={profileForm.firstName}
-              onChange={(e) => handleProfileInputChange('firstName', e.target.value)}
-              className="input-field w-full"
-            />
-          ) : (
-            <div className="text-white">{user?.firstName}</div>
-          )}
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-gray-300 mb-2">Фамилия *</label>
-          {isEditing ? (
-            <input
-              type="text"
-              value={profileForm.lastName}
-              onChange={(e) => handleProfileInputChange('lastName', e.target.value)}
-              className="input-field w-full"
-            />
-          ) : (
-            <div className="text-white">{user?.lastName}</div>
-          )}
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-gray-300 mb-2">Email</label>
-          <div className="text-white">{user?.email}</div>
-          <div className="text-xs text-gray-500 mt-1">Email нельзя изменить</div>
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-gray-300 mb-2">Телефон</label>
-          {isEditing ? (
-            <input
-              type="tel"
-              value={profileForm.phone}
-              onChange={(e) => handleProfileInputChange('phone', e.target.value)}
-              className="input-field w-full"
-            />
-          ) : (
-            <div className="text-white">{user?.phone}</div>
-          )}
-        </div>
-
-        {user?.userType === 'agent' && (
-          <>
-            <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">Компания</label>
-              {isEditing ? (
-                <input
-                  type="text"
-                  value={profileForm.companyName}
-                  onChange={(e) => handleProfileInputChange('companyName', e.target.value)}
-                  className="input-field w-full"
-                />
-              ) : (
-                <div className="text-white">{user?.companyName || 'Не указано'}</div>
-              )}
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">Тип организации</label>
-              {isEditing ? (
-                <select
-                  value={profileForm.organizationType}
-                  onChange={(e) => handleProfileInputChange('organizationType', e.target.value)}
-                  className="select-field w-full"
-                >
-                  <option value="">Выберите тип</option>
-                  {organizationTypes.map(type => (
-                    <option key={type.value} value={type.value}>{type.label}</option>
-                  ))}
-                </select>
-              ) : (
-                <div className="text-white">
-                  {organizationTypes.find(t => t.value === user?.organizationType)?.label || 'Не указано'}
-                </div>
-              )}
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">Тип деятельности</label>
-              {isEditing ? (
-                <select
-                  value={profileForm.activityType}
-                  onChange={(e) => handleProfileInputChange('activityType', e.target.value)}
-                  className="select-field w-full"
-                >
-                  <option value="">Выберите тип</option>
-                  {activityTypes.map(type => (
-                    <option key={type.value} value={type.value}>{type.label}</option>
-                  ))}
-                </select>
-              ) : (
-                <div className="text-white">
-                  {activityTypes.find(t => t.value === user?.activityType)?.label || 'Не указано'}
-                </div>
-              )}
-            </div>
-          </>
-        )}
-
-        <div>
-          <label className="block text-sm font-medium text-gray-300 mb-2">Язык интерфейса</label>
-          {isEditing ? (
-            <select
-              value={profileForm.language}
-              onChange={(e) => handleProfileInputChange('language', e.target.value)}
-              className="select-field w-full"
-            >
-              {languages.map(lang => (
-                <option key={lang.value} value={lang.value}>{lang.label}</option>
-              ))}
-            </select>
-          ) : (
-            <div className="text-white">
-              {languages.find(l => l.value === user?.language)?.label || 'Русский'}
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* Account Status */}
-      <div className="card bg-blue-900/20 border-blue-600/30">
-        <h4 className="text-lg font-semibold text-blue-400 mb-3">Статус аккаунта</h4>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div>
-            <span className="text-gray-400">Email:</span>
-            <span className={`ml-2 px-2 py-1 rounded text-xs ${
-              user?.isEmailVerified ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'
-            }`}>
-              {user?.isEmailVerified ? 'Подтвержден' : 'Не подтвержден'}
-            </span>
-          </div>
-          <div>
-            <span className="text-gray-400">Тип пользователя:</span>
-            <span className="ml-2 text-white">
-              {user?.userType === 'client' ? 'Клиент' : 'Агент'}
-            </span>
-          </div>
-          <div>
-            <span className="text-gray-400">Дата регистрации:</span>
-            <span className="ml-2 text-white">
-              {user?.createdAt ? new Date(user.createdAt).toLocaleDateString('ru-RU') : 'Не указано'}
-            </span>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-
-  const renderPasswordTab = () => (
-    <div className="space-y-6">
-      <h3 className="text-xl font-semibold text-white">Смена пароля</h3>
-      
-      <div className="max-w-md space-y-4">
-        <div>
-          <label className="block text-sm font-medium text-gray-300 mb-2">Текущий пароль</label>
-          <input
-            type="password"
-            value={passwordForm.currentPassword}
-            onChange={(e) => handlePasswordInputChange('currentPassword', e.target.value)}
-            className="input-field w-full"
-          />
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-gray-300 mb-2">Новый пароль</label>
-          <input
-            type="password"
-            value={passwordForm.newPassword}
-            onChange={(e) => handlePasswordInputChange('newPassword', e.target.value)}
-            className="input-field w-full"
-          />
-          <div className="text-xs text-gray-500 mt-1">Минимум 6 символов</div>
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-gray-300 mb-2">Подтвердите пароль</label>
-          <input
-            type="password"
-            value={passwordForm.confirmPassword}
-            onChange={(e) => handlePasswordInputChange('confirmPassword', e.target.value)}
-            className="input-field w-full"
-          />
-        </div>
-
-        <button
-          onClick={changePassword}
-          disabled={isSaving || !passwordForm.currentPassword || !passwordForm.newPassword || !passwordForm.confirmPassword}
-          className="btn-primary w-full"
-        >
-          {isSaving ? 'Изменение...' : 'Изменить пароль'}
-        </button>
-      </div>
-    </div>
-  );
-
-  const renderNotificationsTab = () => (
-    <div className="space-y-6">
-      <h3 className="text-xl font-semibold text-white">Настройки уведомлений</h3>
-      
-      <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <div>
-            <div className="text-white font-medium">Email уведомления</div>
-            <div className="text-sm text-gray-400">Получать уведомления на email</div>
-          </div>
-          <label className="relative inline-flex items-center cursor-pointer">
-            <input
-              type="checkbox"
-              checked={notifications.email}
-              onChange={(e) => handleNotificationChange('email', e.target.checked)}
-              className="sr-only peer"
-            />
-            <div className="w-11 h-6 bg-gray-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-bearplus-green"></div>
-          </label>
-        </div>
-
-        <div className="flex items-center justify-between">
-          <div>
-            <div className="text-white font-medium">SMS уведомления</div>
-            <div className="text-sm text-gray-400">Получать уведомления по SMS</div>
-          </div>
-          <label className="relative inline-flex items-center cursor-pointer">
-            <input
-              type="checkbox"
-              checked={notifications.sms}
-              onChange={(e) => handleNotificationChange('sms', e.target.checked)}
-              className="sr-only peer"
-            />
-            <div className="w-11 h-6 bg-gray-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-bearplus-green"></div>
-          </label>
-        </div>
-
-        <div className="flex items-center justify-between">
-          <div>
-            <div className="text-white font-medium">Push уведомления</div>
-            <div className="text-sm text-gray-400">Уведомления в браузере</div>
-          </div>
-          <label className="relative inline-flex items-center cursor-pointer">
-            <input
-              type="checkbox"
-              checked={notifications.push}
-              onChange={(e) => handleNotificationChange('push', e.target.checked)}
-              className="sr-only peer"
-            />
-            <div className="w-11 h-6 bg-gray-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-bearplus-green"></div>
-          </label>
-        </div>
-
-        <div className="flex items-center justify-between">
-          <div>
-            <div className="text-white font-medium">Маркетинговые уведомления</div>
-            <div className="text-sm text-gray-400">Новости и специальные предложения</div>
-          </div>
-          <label className="relative inline-flex items-center cursor-pointer">
-            <input
-              type="checkbox"
-              checked={notifications.marketing}
-              onChange={(e) => handleNotificationChange('marketing', e.target.checked)}
-              className="sr-only peer"
-            />
-            <div className="w-11 h-6 bg-gray-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-bearplus-green"></div>
-          </label>
-        </div>
-      </div>
-
-      <button
-        onClick={saveNotifications}
-        disabled={isSaving}
-        className="btn-primary"
-      >
-        {isSaving ? 'Сохранение...' : 'Сохранить настройки'}
-      </button>
-    </div>
-  );
-
-  const renderSecurityTab = () => (
-    <div className="space-y-6">
-      <h3 className="text-xl font-semibold text-white">Безопасность и конфиденциальность</h3>
-      
-      <div className="space-y-6">
-        {/* Data Export */}
-        <div className="card bg-blue-900/20 border-blue-600/30">
-          <h4 className="text-lg font-semibold text-blue-400 mb-3">Экспорт данных</h4>
-          <p className="text-gray-300 mb-4">
-            Вы можете экспортировать все свои данные в формате JSON
-          </p>
-          <button
-            onClick={exportData}
-            className="btn-secondary"
-          >
-            Экспортировать данные
-          </button>
-        </div>
-
-        {/* Logout from all devices */}
-        <div className="card bg-yellow-900/20 border-yellow-600/30">
-          <h4 className="text-lg font-semibold text-yellow-400 mb-3">Завершить все сессии</h4>
-          <p className="text-gray-300 mb-4">
-            Завершить активные сессии на всех устройствах
-          </p>
-          <button
-            onClick={onLogout}
-            className="bg-yellow-600 hover:bg-yellow-700 text-white px-4 py-2 rounded transition-colors"
-          >
-            Выйти из всех устройств
-          </button>
-        </div>
-
-        {/* Delete Account */}
-        <div className="card bg-red-900/20 border-red-600/30">
-          <h4 className="text-lg font-semibold text-red-400 mb-3">Удаление аккаунта</h4>
-          <p className="text-gray-300 mb-4">
-            Безвозвратно удалить аккаунт и все связанные данные. Это действие нельзя отменить.
-          </p>
-          <button
-            onClick={deleteAccount}
-            className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded transition-colors"
-          >
-            Удалить аккаунт
-          </button>
-        </div>
-      </div>
-    </div>
-  );
+    );
+  }
 
   return (
     <div className="space-y-6">
-      <h2 className="text-2xl font-bold text-white">Настройки профиля</h2>
+      {/* Profile Header */}
+      <div className="bg-bearplus-card rounded-lg p-6">
+        <div className="flex items-center space-x-6">
+          <div className="relative">
+            <div className="w-24 h-24 rounded-full overflow-hidden bg-gray-700">
+              {previewAvatar || profile.avatar ? (
+                <img 
+                  src={previewAvatar || profile.avatar} 
+                  alt="Avatar" 
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center text-2xl text-gray-400">
+                  {profile.firstName[0]}{profile.lastName[0]}
+                </div>
+              )}
+            </div>
+            <label className="absolute bottom-0 right-0 bg-bearplus-green text-black rounded-full w-8 h-8 flex items-center justify-center cursor-pointer hover:bg-bearplus-green/80">
+              <input
+                type="file"
+                accept="image/*"
+                onChange={handleAvatarChange}
+                className="hidden"
+              />
+              📷
+            </label>
+          </div>
+
+          <div className="flex-1">
+            <h2 className="text-2xl font-bold text-white">
+              {profile.firstName} {profile.lastName}
+            </h2>
+            <p className="text-bearplus-green">{profile.position}</p>
+            <p className="text-gray-400">{profile.company}</p>
+            <p className="text-gray-400">{profile.email}</p>
+          </div>
+
+          <div className="flex gap-2">
+            {avatarFile && (
+              <button
+                onClick={handleUploadAvatar}
+                disabled={isSaving}
+                className="btn-primary"
+              >
+                {isSaving ? 'Загрузка...' : 'Сохранить фото'}
+              </button>
+            )}
+            <button
+              onClick={() => setIsEditing(!isEditing)}
+              className="btn-secondary"
+            >
+              {isEditing ? 'Отмена' : 'Редактировать'}
+            </button>
+          </div>
+        </div>
+      </div>
 
       {/* Tabs */}
-      <div className="flex flex-wrap gap-2 border-b border-gray-700 pb-4">
-        {tabs.map((tab) => (
-          <button
-            key={tab.id}
-            onClick={() => setActiveTab(tab.id as any)}
-            className={`flex items-center px-4 py-2 rounded-lg font-medium transition-all duration-200 ${
-              activeTab === tab.id
-                ? 'bg-bearplus-green text-black'
-                : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
-            }`}
-          >
-            <span className="mr-2">{tab.icon}</span>
-            {tab.label}
-          </button>
-        ))}
+      <div className="bg-bearplus-card rounded-lg">
+        <div className="border-b border-gray-700">
+          <nav className="flex space-x-8 px-6">
+            {[
+              { id: 'general', label: 'Основная информация' },
+              { id: 'security', label: 'Безопасность' },
+              { id: 'notifications', label: 'Уведомления' },
+              { id: 'preferences', label: 'Настройки' }
+            ].map((tab) => (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id as any)}
+                className={`py-4 px-2 border-b-2 font-medium text-sm ${
+                  activeTab === tab.id
+                    ? 'border-bearplus-green text-bearplus-green'
+                    : 'border-transparent text-gray-400 hover:text-gray-300'
+                }`}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </nav>
+        </div>
+
+        <div className="p-6">
+          {/* General Tab */}
+          {activeTab === 'general' && (
+            <div className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                    Имя
+                  </label>
+                  <input
+                    type="text"
+                    value={profile.firstName}
+                    onChange={(e) => isEditing && setProfile({
+                      ...profile,
+                      firstName: e.target.value
+                    })}
+                    disabled={!isEditing}
+                    className="input-field"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                    Фамилия
+                  </label>
+                  <input
+                    type="text"
+                    value={profile.lastName}
+                    onChange={(e) => isEditing && setProfile({
+                      ...profile,
+                      lastName: e.target.value
+                    })}
+                    disabled={!isEditing}
+                    className="input-field"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                    Email
+                  </label>
+                  <input
+                    type="email"
+                    value={profile.email}
+                    onChange={(e) => isEditing && setProfile({
+                      ...profile,
+                      email: e.target.value
+                    })}
+                    disabled={!isEditing}
+                    className="input-field"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                    Телефон
+                  </label>
+                  <input
+                    type="tel"
+                    value={profile.phone}
+                    onChange={(e) => isEditing && setProfile({
+                      ...profile,
+                      phone: e.target.value
+                    })}
+                    disabled={!isEditing}
+                    className="input-field"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                    Компания
+                  </label>
+                  <input
+                    type="text"
+                    value={profile.company}
+                    onChange={(e) => isEditing && setProfile({
+                      ...profile,
+                      company: e.target.value
+                    })}
+                    disabled={!isEditing}
+                    className="input-field"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                    Должность
+                  </label>
+                  <input
+                    type="text"
+                    value={profile.position}
+                    onChange={(e) => isEditing && setProfile({
+                      ...profile,
+                      position: e.target.value
+                    })}
+                    disabled={!isEditing}
+                    className="input-field"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <h4 className="text-lg font-medium text-white mb-4">Адрес</h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="md:col-span-2">
+                    <label className="block text-sm font-medium text-gray-300 mb-2">
+                      Улица
+                    </label>
+                    <input
+                      type="text"
+                      value={profile.address.street}
+                      onChange={(e) => isEditing && setProfile({
+                        ...profile,
+                        address: { ...profile.address, street: e.target.value }
+                      })}
+                      disabled={!isEditing}
+                      className="input-field"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-300 mb-2">
+                      Город
+                    </label>
+                    <input
+                      type="text"
+                      value={profile.address.city}
+                      onChange={(e) => isEditing && setProfile({
+                        ...profile,
+                        address: { ...profile.address, city: e.target.value }
+                      })}
+                      disabled={!isEditing}
+                      className="input-field"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-300 mb-2">
+                      Область
+                    </label>
+                    <input
+                      type="text"
+                      value={profile.address.state}
+                      onChange={(e) => isEditing && setProfile({
+                        ...profile,
+                        address: { ...profile.address, state: e.target.value }
+                      })}
+                      disabled={!isEditing}
+                      className="input-field"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-300 mb-2">
+                      Почтовый индекс
+                    </label>
+                    <input
+                      type="text"
+                      value={profile.address.zipCode}
+                      onChange={(e) => isEditing && setProfile({
+                        ...profile,
+                        address: { ...profile.address, zipCode: e.target.value }
+                      })}
+                      disabled={!isEditing}
+                      className="input-field"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-300 mb-2">
+                      Страна
+                    </label>
+                    <input
+                      type="text"
+                      value={profile.address.country}
+                      onChange={(e) => isEditing && setProfile({
+                        ...profile,
+                        address: { ...profile.address, country: e.target.value }
+                      })}
+                      disabled={!isEditing}
+                      className="input-field"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {isEditing && (
+                <div className="flex gap-4">
+                  <button
+                    onClick={handleSaveProfile}
+                    disabled={isSaving}
+                    className="btn-primary"
+                  >
+                    {isSaving ? 'Сохранение...' : 'Сохранить изменения'}
+                  </button>
+                  <button
+                    onClick={() => {
+                      setIsEditing(false);
+                      fetchProfile(); // Reset changes
+                    }}
+                    className="btn-secondary"
+                  >
+                    Отмена
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Security Tab */}
+          {activeTab === 'security' && (
+            <div className="space-y-6">
+              <div>
+                <h4 className="text-lg font-medium text-white mb-4">Безопасность аккаунта</h4>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="bg-bearplus-card-dark rounded-lg p-4">
+                    <h5 className="font-medium text-white mb-2">Пароль</h5>
+                    <p className="text-sm text-gray-400 mb-4">
+                      Последнее изменение: {formatDate(profile.security.lastPasswordChange)}
+                    </p>
+                    <button
+                      onClick={() => setShowPasswordModal(true)}
+                      className="btn-secondary"
+                    >
+                      Изменить пароль
+                    </button>
+                  </div>
+
+                  <div className="bg-bearplus-card-dark rounded-lg p-4">
+                    <h5 className="font-medium text-white mb-2">Двухфакторная аутентификация</h5>
+                    <p className="text-sm text-gray-400 mb-4">
+                      {profile.security.twoFactorEnabled ? 'Включена' : 'Отключена'}
+                    </p>
+                    <button
+                      onClick={() => setProfile({
+                        ...profile,
+                        security: {
+                          ...profile.security,
+                          twoFactorEnabled: !profile.security.twoFactorEnabled
+                        }
+                      })}
+                      className={profile.security.twoFactorEnabled ? 'btn-secondary' : 'btn-primary'}
+                    >
+                      {profile.security.twoFactorEnabled ? 'Отключить' : 'Включить'}
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <h4 className="text-lg font-medium text-white mb-4">Активные сессии</h4>
+                <div className="space-y-3">
+                  {profile.security.loginSessions.map((session) => (
+                    <div key={session.id} className="bg-bearplus-card-dark rounded-lg p-4">
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <div className="flex items-center space-x-2">
+                            <h5 className="font-medium text-white">{session.device}</h5>
+                            {session.isCurrent && (
+                              <span className="bg-green-600 text-white text-xs px-2 py-1 rounded">
+                                Текущая
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-sm text-gray-400">{session.location}</p>
+                          <p className="text-xs text-gray-500">
+                            Последняя активность: {formatDate(session.lastActive)}
+                          </p>
+                        </div>
+                        {!session.isCurrent && (
+                          <button
+                            onClick={() => handleLogoutSession(session.id)}
+                            className="text-red-400 hover:text-red-300 text-sm"
+                          >
+                            Завершить
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Notifications Tab */}
+          {activeTab === 'notifications' && (
+            <div className="space-y-6">
+              <h4 className="text-lg font-medium text-white mb-4">Настройки уведомлений</h4>
+              
+              <div className="space-y-4">
+                {Object.entries(profile.preferences.notifications).map(([key, value]) => {
+                  const labels = {
+                    email: 'Email уведомления',
+                    sms: 'SMS уведомления',
+                    push: 'Push уведомления',
+                    orderUpdates: 'Обновления заказов',
+                    priceAlerts: 'Уведомления о ценах',
+                    newsletters: 'Рассылки и новости'
+                  };
+
+                  return (
+                    <div key={key} className="flex items-center justify-between p-4 bg-bearplus-card-dark rounded-lg">
+                      <div>
+                        <h5 className="font-medium text-white">{labels[key as keyof typeof labels]}</h5>
+                      </div>
+                      <label className="relative inline-flex items-center cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={value}
+                          onChange={(e) => setProfile({
+                            ...profile,
+                            preferences: {
+                              ...profile.preferences,
+                              notifications: {
+                                ...profile.preferences.notifications,
+                                [key]: e.target.checked
+                              }
+                            }
+                          })}
+                          className="sr-only peer"
+                        />
+                        <div className="w-11 h-6 bg-gray-600 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-bearplus-green/25 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-bearplus-green"></div>
+                      </label>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Preferences Tab */}
+          {activeTab === 'preferences' && (
+            <div className="space-y-6">
+              <h4 className="text-lg font-medium text-white mb-4">Общие настройки</h4>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                    Язык интерфейса
+                  </label>
+                  <select
+                    value={profile.preferences.language}
+                    onChange={(e) => setProfile({
+                      ...profile,
+                      preferences: {
+                        ...profile.preferences,
+                        language: e.target.value as 'ru' | 'en'
+                      }
+                    })}
+                    className="input-field"
+                  >
+                    <option value="ru">Русский</option>
+                    <option value="en">English</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                    Валюта
+                  </label>
+                  <select
+                    value={profile.preferences.currency}
+                    onChange={(e) => setProfile({
+                      ...profile,
+                      preferences: {
+                        ...profile.preferences,
+                        currency: e.target.value as 'RUB' | 'USD' | 'EUR'
+                      }
+                    })}
+                    className="input-field"
+                  >
+                    <option value="RUB">₽ Российский рубль</option>
+                    <option value="USD">$ Доллар США</option>
+                    <option value="EUR">€ Евро</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                    Часовой пояс
+                  </label>
+                  <select
+                    value={profile.preferences.timezone}
+                    onChange={(e) => setProfile({
+                      ...profile,
+                      preferences: {
+                        ...profile.preferences,
+                        timezone: e.target.value
+                      }
+                    })}
+                    className="input-field"
+                  >
+                    <option value="Europe/Moscow">Москва (UTC+3)</option>
+                    <option value="Europe/London">Лондон (UTC+0)</option>
+                    <option value="America/New_York">Нью-Йорк (UTC-5)</option>
+                    <option value="Asia/Shanghai">Шанхай (UTC+8)</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
       </div>
 
-      {/* Tab Content */}
-      <div className="min-h-[400px]">
-        {activeTab === 'profile' && renderProfileTab()}
-        {activeTab === 'password' && renderPasswordTab()}
-        {activeTab === 'notifications' && renderNotificationsTab()}
-        {activeTab === 'security' && renderSecurityTab()}
-      </div>
+      {/* Password Change Modal */}
+      {showPasswordModal && (
+        <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4" onClick={() => setShowPasswordModal(false)}>
+          <div className="bg-bearplus-card-dark rounded-xl p-6 w-full max-w-md border border-gray-700" onClick={(e) => e.stopPropagation()}>
+            <h3 className="text-xl font-bold text-white mb-4">Изменение пароля</h3>
+            
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">
+                  Текущий пароль
+                </label>
+                <input
+                  type="password"
+                  value={passwordForm.currentPassword}
+                  onChange={(e) => setPasswordForm({
+                    ...passwordForm,
+                    currentPassword: e.target.value
+                  })}
+                  className="input-field"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">
+                  Новый пароль
+                </label>
+                <input
+                  type="password"
+                  value={passwordForm.newPassword}
+                  onChange={(e) => setPasswordForm({
+                    ...passwordForm,
+                    newPassword: e.target.value
+                  })}
+                  className="input-field"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">
+                  Подтвердите новый пароль
+                </label>
+                <input
+                  type="password"
+                  value={passwordForm.confirmPassword}
+                  onChange={(e) => setPasswordForm({
+                    ...passwordForm,
+                    confirmPassword: e.target.value
+                  })}
+                  className="input-field"
+                />
+              </div>
+            </div>
+
+            <div className="flex gap-4 mt-6">
+              <button
+                onClick={handlePasswordChange}
+                disabled={isSaving || !passwordForm.currentPassword || !passwordForm.newPassword || !passwordForm.confirmPassword}
+                className="btn-primary flex-1"
+              >
+                {isSaving ? 'Изменение...' : 'Изменить пароль'}
+              </button>
+              <button
+                onClick={() => setShowPasswordModal(false)}
+                className="btn-secondary flex-1"
+              >
+                Отмена
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

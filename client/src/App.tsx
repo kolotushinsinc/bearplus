@@ -10,6 +10,13 @@ import RegisterPage from './pages/auth/RegisterPage';
 import ForgotPasswordPage from './pages/auth/ForgotPasswordPage';
 import ResetPasswordPage from './pages/auth/ResetPasswordPage';
 import VerifyEmailPage from './pages/auth/VerifyEmailPage';
+import VerifyResetCodePage from './pages/auth/VerifyResetCodePage';
+import FreightRatesPage from './pages/FreightRatesPage';
+import ShipTrackingPage from './pages/ShipTrackingPage';
+import ContainerRentalPage from './pages/ContainerRentalPage';
+import AutoDeliveryPage from './pages/AutoDeliveryPage';
+import RailwayTariffsPage from './pages/RailwayTariffsPage';
+import MessengerPage from './pages/MessengerPage';
 
 // ProtectedRoute component
 interface ProtectedRouteProps {
@@ -77,11 +84,33 @@ const App: React.FC = () => {
             </ProtectedRoute>
           }
         />
+        <Route path="/auth/login" element={<LoginPage />} />
+        <Route path="/auth/register" element={<RegisterPage />} />
+        <Route path="/auth/forgot-password" element={<ForgotPasswordPage />} />
+        <Route path="/auth/verify-reset-code" element={<VerifyResetCodePage />} />
+        <Route path="/auth/reset-password" element={<ResetPasswordPage />} />
+        <Route path="/auth/verify-email" element={<VerifyEmailPage />} />
+        <Route path="/verify-email" element={<VerifyEmailPage />} />
+        
+        {/* Legacy routes for backward compatibility */}
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
         <Route path="/forgot-password" element={<ForgotPasswordPage />} />
-        <Route path="/reset-password/:token?" element={<ResetPasswordPage />} />
-        <Route path="/verify-email/:token?" element={<VerifyEmailPage />} />
+        <Route path="/verify-reset-code" element={<VerifyResetCodePage />} />
+        <Route path="/reset-password" element={<ResetPasswordPage />} />
+        <Route path="/freight-rates" element={<FreightRatesPage />} />
+        <Route path="/ship-tracking" element={<ShipTrackingPage />} />
+        <Route path="/container-rental" element={<ContainerRentalPage />} />
+        <Route path="/auto-delivery" element={<AutoDeliveryPage />} />
+        <Route path="/railway-tariffs" element={<RailwayTariffsPage />} />
+        <Route
+          path="/messenger"
+          element={
+            <ProtectedRoute>
+              <MessengerPage />
+            </ProtectedRoute>
+          }
+        />
       </Routes>
     </Layout>
   );

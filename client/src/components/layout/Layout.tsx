@@ -1,8 +1,10 @@
 import * as React from 'react';
 import { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { useAppDispatch, useAppSelector } from '../../hooks/redux';
 import { logoutUser } from '../../store/slices/authSlice';
+import LanguageSwitcher from '../LanguageSwitcher';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -16,6 +18,7 @@ interface FeedbackFormData {
 }
 
 const Layout: React.FC<LayoutProps> = ({ children }) => {
+  const { t } = useTranslation();
   const location = useLocation();
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
@@ -138,13 +141,13 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                   to="/dashboard"
                   className="bg-white hover:bg-gray-100 text-black px-4 py-2 rounded text-sm font-medium transition-colors min-w-[80px]"
                 >
-                  Кабинет
+                  {t('navigation.dashboard')}
                 </Link>
                 <button
                   onClick={handleLogout}
                   className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded text-sm font-medium transition-colors min-w-[80px]"
                 >
-                  Выйти
+                  {t('navigation.logout')}
                 </button>
                 {user && (
                   <span className="text-white text-sm">
@@ -158,13 +161,13 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                   to="/login"
                   className="bg-white hover:bg-gray-100 text-black px-4 py-2 rounded text-sm font-medium transition-colors min-w-[80px]"
                 >
-                  Вход
+                  {t('navigation.login')}
                 </Link>
                 <Link
                   to="/register"
                   className="btn-green text-sm min-w-[120px]"
                 >
-                  Регистрация
+                  {t('navigation.register')}
                 </Link>
               </>
             )}

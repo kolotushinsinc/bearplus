@@ -1,6 +1,7 @@
 import * as React from 'react';
-import { useState, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { useAppSelector } from '../../hooks/redux';
+import { apiService } from '../../services/apiService';
 
 interface Document {
   id: string;
@@ -15,433 +16,366 @@ interface Document {
   comments?: string;
 }
 
-interface DocumentCategory {
-  id: string;
-  name: string;
-  icon: string;
-  allowedTypes: string[];
-  maxSize: number; // in MB
-}
-
 const DocumentsManagement: React.FC = () => {
   const { user } = useAppSelector((state) => state.auth);
   const [documents, setDocuments] = useState<Document[]>([]);
-  const [selectedCategory, setSelectedCategory] = useState<string>('all');
-  const [isUploading, setIsUploading] = useState(false);
-  const [selectedDocument, setSelectedDocument] = useState<Document | null>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [uploadModal, setUploadModal] = useState(false);
+  const [filter, setFilter] = useState<string>('all');
+  const [dragOver, setDragOver] = useState(false);
 
-  const categories: DocumentCategory[] = [
-    {
-      id: 'invoice',
-      name: 'Инвойсы',
-      icon: '📄',
-      allowedTypes: ['application/pdf', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'application/msword'],
-      maxSize: 10
-    },
-    {
-      id: 'packing_list',
-      name: 'Упаковочные листы',
-      icon: '📋',
-      allowedTypes: ['application/pdf', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 'application/vnd.ms-excel'],
-      maxSize: 5
-    },
-    {
-      id: 'certificate',
-      name: 'Сертификаты',
-      icon: '📜',
-      allowedTypes: ['application/pdf', 'image/jpeg', 'image/png'],
-      maxSize: 15
-    },
-    {
-      id: 'msds',
-      name: 'MSDS документы',
-      icon: '⚠️',
-      allowedTypes: ['application/pdf'],
-      maxSize: 20
-    },
-    {
-      id: 'contract',
-      name: 'Договоры',
-      icon: '📑',
-      allowedTypes: ['application/pdf', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'],
-      maxSize: 25
-    },
-    {
-      id: 'other',
-      name: 'Прочие',
-      icon: '📎',
-      allowedTypes: ['application/pdf', 'image/jpeg', 'image/png', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'],
-      maxSize: 10
-    }
-  ];
+  useEffect(() => {
+    fetchDocuments();
+  }, []);
 
-  // Mock documents data
-  React.useEffect(() => {
-    const mockDocuments: Document[] = [
-      {
-        id: '1',
-        name: 'Commercial_Invoice_ORD001.pdf',
-        type: 'invoice',
-        size: 2048000,
-        uploadedAt: '2024-01-15T10:30:00Z',
-        uploadedBy: user?.id || 'user1',
-        url: '/documents/Commercial_Invoice_ORD001.pdf',
-        orderId: 'ORD-2024-001',
-        status: 'approved'
-      },
-      {
-        id: '2',
-        name: 'Packing_List_ORD001.xlsx',
-        type: 'packing_list',
-        size: 1536000,
-        uploadedAt: '2024-01-15T10:35:00Z',
-        uploadedBy: user?.id || 'user1',
-        url: '/documents/Packing_List_ORD001.xlsx',
-        orderId: 'ORD-2024-001',
-        status: 'approved'
-      },
-      {
-        id: '3',
-        name: 'Quality_Certificate.pdf',
-        type: 'certificate',
-        size: 3072000,
-        uploadedAt: '2024-01-16T14:20:00Z',
-        uploadedBy: user?.id || 'user1',
-        url: '/documents/Quality_Certificate.pdf',
-        status: 'processing'
-      },
-      {
-        id: '4',
-        name: 'MSDS_Chemical_Product.pdf',
-        type: 'msds',
-        size: 4096000,
-        uploadedAt: '2024-01-17T09:15:00Z',
-        uploadedBy: user?.id || 'user1',
-        url: '/documents/MSDS_Chemical_Product.pdf',
-        status: 'rejected',
-        comments: 'Документ устарел, требуется актуальная версия'
-      }
-    ];
-    setDocuments(mockDocuments);
-  }, [user]);
-
-  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const files = event.target.files;
-    if (!files || files.length === 0) return;
-
-    setIsUploading(true);
-
+  const fetchDocuments = async () => {
     try {
-      for (const file of Array.from(files)) {
-        // Validate file type and size
-        const category = categories.find(cat => cat.id === selectedCategory);
-        if (category && selectedCategory !== 'all') {
-          if (!category.allowedTypes.includes(file.type)) {
-            alert(`Недопустимый тип файла для категории "${category.name}"`);
-            continue;
-          }
-          if (file.size > category.maxSize * 1024 * 1024) {
-            alert(`Файл "${file.name}" превышает максимальный размер ${category.maxSize}MB`);
-            continue;
-          }
-        }
-
-        // Upload file (mock implementation)
-        const formData = new FormData();
-        formData.append('file', file);
-        formData.append('category', selectedCategory);
-
-        // Simulate upload
-        await new Promise(resolve => setTimeout(resolve, 1000));
-
-        const newDocument: Document = {
-          id: Date.now().toString(),
-          name: file.name,
-          type: selectedCategory as any,
-          size: file.size,
-          uploadedAt: new Date().toISOString(),
-          uploadedBy: user?.id || 'user1',
-          url: `/documents/${file.name}`,
-          status: 'processing'
-        };
-
-        setDocuments(prev => [newDocument, ...prev]);
-      }
-
-      // Reset file input
-      if (fileInputRef.current) {
-        fileInputRef.current.value = '';
+      setIsLoading(true);
+      const response = await apiService.documents.getDocuments({
+        type: filter === 'all' ? undefined : filter,
+        page: 1,
+        limit: 50
+      });
+      
+      if (response.success) {
+        setDocuments(response.data || []);
+      } else {
+        console.error('Failed to fetch documents:', response);
+        setDocuments([]);
       }
     } catch (error) {
-      console.error('Upload error:', error);
-      alert('Ошибка при загрузке файла');
+      console.error('Error fetching documents:', error);
+      setDocuments([]);
     } finally {
-      setIsUploading(false);
+      setIsLoading(false);
     }
-  };
-
-  const handleDownload = (doc: Document) => {
-    // Simulate file download
-    const link = window.document.createElement('a');
-    link.href = doc.url;
-    link.download = doc.name;
-    link.click();
-  };
-
-  const handleDelete = async (documentId: string) => {
-    if (!confirm('Вы уверены, что хотите удалить этот документ?')) return;
-
-    try {
-      // API call to delete document
-      setDocuments(prev => prev.filter(doc => doc.id !== documentId));
-    } catch (error) {
-      console.error('Delete error:', error);
-      alert('Ошибка при удалении документа');
-    }
-  };
-
-  const formatFileSize = (bytes: number) => {
-    if (bytes === 0) return '0 Bytes';
-    const k = 1024;
-    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   };
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'uploaded': return 'bg-blue-600';
-      case 'processing': return 'bg-yellow-600';
-      case 'approved': return 'bg-green-600';
-      case 'rejected': return 'bg-red-600';
-      default: return 'bg-gray-600';
+      case 'approved': return 'text-green-400';
+      case 'processing': return 'text-yellow-400';
+      case 'rejected': return 'text-red-400';
+      default: return 'text-gray-400';
     }
   };
 
   const getStatusLabel = (status: string) => {
     switch (status) {
       case 'uploaded': return 'Загружен';
-      case 'processing': return 'Обработка';
+      case 'processing': return 'Обрабатывается';
       case 'approved': return 'Одобрен';
       case 'rejected': return 'Отклонен';
       default: return status;
     }
   };
 
-  const filteredDocuments = selectedCategory === 'all' 
-    ? documents 
-    : documents.filter(doc => doc.type === selectedCategory);
+  const getTypeLabel = (type: string) => {
+    switch (type) {
+      case 'invoice': return 'Инвойс';
+      case 'packing_list': return 'Упаковочный лист';
+      case 'certificate': return 'Сертификат';
+      case 'msds': return 'MSDS';
+      case 'contract': return 'Контракт';
+      default: return 'Другое';
+    }
+  };
+
+  const formatFileSize = (bytes: number): string => {
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    if (bytes === 0) return '0 Bytes';
+    const i = Math.floor(Math.log(bytes) / Math.log(1024));
+    return Math.round(bytes / Math.pow(1024, i) * 100) / 100 + ' ' + sizes[i];
+  };
+
+  const handleFileUpload = async (files: FileList | null) => {
+    if (!files || files.length === 0) return;
+
+    try {
+      const response = await apiService.documents.uploadDocuments(files, 'other');
+      
+      if (response.success) {
+        // Refresh documents list
+        await fetchDocuments();
+        alert(`${files.length} документ(ов) успешно загружено`);
+      } else {
+        alert('Ошибка при загрузке файлов: ' + response.message);
+      }
+    } catch (error) {
+      console.error('Error uploading files:', error);
+      alert('Ошибка при загрузке файлов');
+    }
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    setDragOver(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    setDragOver(false);
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setDragOver(false);
+    handleFileUpload(e.dataTransfer.files);
+  };
+
+  const filteredDocuments = documents.filter(doc => {
+    if (filter === 'all') return true;
+    return doc.type === filter;
+  });
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <div className="text-white text-xl">Загрузка документов...</div>
+      </div>
+    );
+  }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8 animate-fade-in">
+      {/* Modern Header */}
       <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold text-white">Управление документами</h2>
-        <div className="flex gap-4">
-          <select
-            value={selectedCategory}
-            onChange={(e) => setSelectedCategory(e.target.value)}
-            className="select-field"
-          >
-            <option value="all">Все категории</option>
-            {categories.map(cat => (
-              <option key={cat.id} value={cat.id}>
-                {cat.icon} {cat.name}
-              </option>
-            ))}
-          </select>
-          <button
-            onClick={() => fileInputRef.current?.click()}
-            disabled={isUploading}
-            className="btn-primary"
-          >
-            {isUploading ? 'Загрузка...' : 'Загрузить документы'}
-          </button>
+        <div className="flex items-center gap-4">
+          <div className="p-3 bg-tech-primary/10 rounded-xl border border-tech-primary/20">
+            <span className="text-2xl">📄</span>
+          </div>
+          <div>
+            <h2 className="text-tech-title">Управление документами</h2>
+            <p className="text-tech-caption">Загружайте и управляйте документами</p>
+          </div>
         </div>
+        <button
+          onClick={() => setUploadModal(true)}
+          className="btn-primary btn-sm"
+        >
+          ⬆️ Загрузить
+        </button>
       </div>
 
-      {/* Hidden file input */}
-      <input
-        ref={fileInputRef}
-        type="file"
-        multiple
-        accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png"
-        onChange={handleFileUpload}
-        className="hidden"
-      />
-
-      {/* Upload Guidelines */}
-      {selectedCategory !== 'all' && (
-        <div className="card bg-blue-900/20 border-blue-600/30">
-          <h3 className="text-lg font-semibold text-blue-400 mb-2">
-            {categories.find(cat => cat.id === selectedCategory)?.icon} 
-            {' '}Требования для категории "{categories.find(cat => cat.id === selectedCategory)?.name}"
-          </h3>
-          <div className="text-sm text-gray-300">
-            <p>Максимальный размер файла: {categories.find(cat => cat.id === selectedCategory)?.maxSize}MB</p>
-            <p>Поддерживаемые форматы: PDF, Word, Excel, изображения</p>
-          </div>
-        </div>
-      )}
-
-      {/* Documents Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {filteredDocuments.map((document) => (
-          <div key={document.id} className="card hover:shadow-glow-sm transition-all duration-300">
-            <div className="flex justify-between items-start mb-3">
-              <div className="flex items-center">
-                <span className="text-2xl mr-2">
-                  {categories.find(cat => cat.id === document.type)?.icon || '📄'}
-                </span>
-                <div>
-                  <h3 className="text-sm font-medium text-white truncate max-w-[150px]" title={document.name}>
-                    {document.name}
-                  </h3>
-                  <p className="text-xs text-gray-400">
-                    {formatFileSize(document.size)}
-                  </p>
-                </div>
-              </div>
-              <span className={`px-2 py-1 rounded text-xs font-medium text-white ${getStatusColor(document.status)}`}>
-                {getStatusLabel(document.status)}
-              </span>
-            </div>
-
-            <div className="text-xs text-gray-400 mb-3">
-              <div>Загружен: {new Date(document.uploadedAt).toLocaleDateString('ru-RU')}</div>
-              {document.orderId && (
-                <div>Заявка: {document.orderId}</div>
-              )}
-            </div>
-
-            {document.comments && document.status === 'rejected' && (
-              <div className="mb-3 p-2 bg-red-900/20 border border-red-600/30 rounded text-xs text-red-300">
-                {document.comments}
-              </div>
-            )}
-
-            <div className="flex gap-2">
-              <button
-                onClick={() => handleDownload(document)}
-                className="flex-1 bg-bearplus-green hover:bg-bearplus-green/90 text-black px-3 py-2 rounded text-xs font-medium transition-colors"
-              >
-                Скачать
-              </button>
-              <button
-                onClick={() => setSelectedDocument(document)}
-                className="flex-1 bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded text-xs font-medium transition-colors"
-              >
-                Подробнее
-              </button>
-              <button
-                onClick={() => handleDelete(document.id)}
-                className="bg-red-600 hover:bg-red-700 text-white px-3 py-2 rounded text-xs font-medium transition-colors"
-              >
-                🗑️
-              </button>
-            </div>
-          </div>
+      {/* Modern Filters */}
+      <div className="filter-bar flex-wrap">
+        {[
+          { key: 'all', label: 'Все документы', icon: '📊' },
+          { key: 'invoice', label: 'Инвойсы', icon: '🧾' },
+          { key: 'packing_list', label: 'Упаковочные листы', icon: '📋' },
+          { key: 'certificate', label: 'Сертификаты', icon: '🏆' },
+          { key: 'msds', label: 'MSDS', icon: '⚠️' },
+          { key: 'contract', label: 'Контракты', icon: '📄' }
+        ].map((filterOption) => (
+          <button
+            key={filterOption.key}
+            onClick={() => setFilter(filterOption.key)}
+            className={`filter-btn flex items-center gap-2 ${
+              filter === filterOption.key ? 'active' : ''
+            }`}
+          >
+            <span className="text-xs">{filterOption.icon}</span>
+            <span className="hidden sm:inline">{filterOption.label}</span>
+          </button>
         ))}
       </div>
 
-      {/* Empty State */}
-      {filteredDocuments.length === 0 && (
-        <div className="text-center py-12">
-          <div className="text-gray-500 mb-4">
-            <svg className="w-16 h-16 mx-auto mb-4" fill="currentColor" viewBox="0 0 20 20">
-              <path fillRule="evenodd" d="M4 4a2 2 0 012-2h8a2 2 0 012 2v12a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 0v12h8V4H6z" clipRule="evenodd" />
-            </svg>
-          </div>
-          <h3 className="text-lg font-medium text-gray-400 mb-2">Документы не найдены</h3>
-          <p className="text-gray-500 mb-4">
-            {selectedCategory === 'all' 
-              ? 'У вас пока нет загруженных документов'
-              : `В категории "${categories.find(cat => cat.id === selectedCategory)?.name}" пока нет документов`
-            }
+      {/* Modern Drag and Drop Area */}
+      <div
+        className={`card-interactive border-2 border-dashed p-8 text-center transition-all duration-300 relative overflow-hidden ${
+          dragOver
+            ? 'border-tech-primary bg-tech-primary/5 glow-tech-sm'
+            : 'border-tech-border hover:border-tech-border-light'
+        }`}
+        onDragOver={handleDragOver}
+        onDragLeave={handleDragLeave}
+        onDrop={handleDrop}
+      >
+        <div className="relative z-10">
+          <div className="text-4xl mb-4 animate-pulse-glow">📤</div>
+          <h3 className="text-tech-subtitle mb-3">
+            Перетащите файлы сюда или нажмите для выбора
+          </h3>
+          <p className="text-tech-caption mb-6">
+            Поддерживаются: PDF, DOC, DOCX, XLS, XLSX, JPG, PNG (макс. 10MB)
           </p>
-          <button
-            onClick={() => fileInputRef.current?.click()}
-            className="btn-primary"
-          >
-            Загрузить первый документ
-          </button>
+          <input
+            type="file"
+            multiple
+            accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png"
+            onChange={(e) => handleFileUpload(e.target.files)}
+            className="hidden"
+            id="file-upload"
+          />
+          <label htmlFor="file-upload" className="btn-secondary btn-sm cursor-pointer inline-flex items-center gap-2">
+            📁 Выбрать файлы
+          </label>
         </div>
-      )}
+        {dragOver && (
+          <div className="absolute inset-0 bg-gradient-to-br from-tech-primary/10 via-transparent to-tech-secondary/10"></div>
+        )}
+      </div>
 
-      {/* Document Details Modal */}
-      {selectedDocument && (
-        <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4" onClick={() => setSelectedDocument(null)}>
-          <div className="bg-bearplus-card-dark rounded-xl p-6 w-full max-w-2xl border border-gray-700" onClick={(e) => e.stopPropagation()}>
-            <div className="flex justify-between items-center mb-6">
-              <h3 className="text-xl font-bold text-white">Детали документа</h3>
-              <button
-                onClick={() => setSelectedDocument(null)}
-                className="text-gray-400 hover:text-white transition-colors"
-              >
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
-
-            <div className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-400 mb-1">Название файла</label>
-                  <div className="text-white">{selectedDocument.name}</div>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-400 mb-1">Категория</label>
-                  <div className="text-white">
-                    {categories.find(cat => cat.id === selectedDocument.type)?.icon} 
-                    {' '}{categories.find(cat => cat.id === selectedDocument.type)?.name}
+      {/* Modern Documents List */}
+      <div className="space-y-4">
+        {filteredDocuments.map((doc, index) => (
+          <div key={doc.id} className="card-interactive group relative overflow-hidden animate-slide-in-left"
+               style={{ animationDelay: `${index * 0.1}s` }}>
+            <div className="absolute inset-0 bg-gradient-to-r from-tech-primary/2 via-transparent to-tech-secondary/2 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+            <div className="relative z-10">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  <div className="p-3 bg-tech-surface-elevated rounded-lg border border-tech-border-light group-hover:border-tech-primary/50 transition-colors">
+                    <span className="text-xl">
+                      {doc.type === 'invoice' ? '🧾' :
+                       doc.type === 'packing_list' ? '📋' :
+                       doc.type === 'certificate' ? '🏆' :
+                       doc.type === 'msds' ? '⚠️' : '📄'}
+                    </span>
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="text-tech-body font-medium group-hover:text-gradient transition-colors">{doc.name}</h3>
+                    <div className="flex items-center gap-4 text-tech-caption">
+                      <span className="status-badge status-info">{getTypeLabel(doc.type)}</span>
+                      <span className="text-tech-mono">{formatFileSize(doc.size)}</span>
+                      <span>{new Date(doc.uploadedAt).toLocaleDateString('ru-RU')}</span>
+                      {doc.orderId && <span className="text-tech-primary">Заявка: {doc.orderId}</span>}
+                    </div>
                   </div>
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-400 mb-1">Размер файла</label>
-                  <div className="text-white">{formatFileSize(selectedDocument.size)}</div>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-400 mb-1">Статус</label>
-                  <span className={`px-2 py-1 rounded text-xs font-medium text-white ${getStatusColor(selectedDocument.status)}`}>
-                    {getStatusLabel(selectedDocument.status)}
+                
+                <div className="flex items-center gap-4">
+                  <span className={`status-badge ${
+                    doc.status === 'approved' ? 'status-success' :
+                    doc.status === 'processing' ? 'status-warning' :
+                    doc.status === 'rejected' ? 'status-error' :
+                    'status-info'
+                  }`}>
+                    {getStatusLabel(doc.status)}
                   </span>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-400 mb-1">Дата загрузки</label>
-                  <div className="text-white">{new Date(selectedDocument.uploadedAt).toLocaleString('ru-RU')}</div>
-                </div>
-                {selectedDocument.orderId && (
-                  <div>
-                    <label className="block text-sm font-medium text-gray-400 mb-1">Связанная заявка</label>
-                    <div className="text-white">{selectedDocument.orderId}</div>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={async () => {
+                        try {
+                          const response = await apiService.documents.getDocumentById(doc.id);
+                          if (response.success && response.data) {
+                            // For viewing, try to open the document URL
+                            const fullUrl = response.data.url.startsWith('http')
+                              ? response.data.url
+                              : `${import.meta.env.VITE_API_URL || 'http://localhost:5005'}${response.data.url}`;
+                            window.open(fullUrl, '_blank');
+                          } else {
+                            alert('Ошибка при открытии документа: ' + (response.message || 'Документ не найден'));
+                          }
+                        } catch (error) {
+                          console.error('Error viewing document:', error);
+                          alert('Ошибка при открытии документа');
+                        }
+                      }}
+                      className="btn-secondary btn-xs"
+                    >
+                      👁️ Просмотр
+                    </button>
+                    <button
+                      onClick={async () => {
+                        try {
+                          await apiService.documents.downloadDocument(doc.id);
+                        } catch (error) {
+                          console.error('Error downloading document:', error);
+                          alert('Ошибка при скачивании документа');
+                        }
+                      }}
+                      className="btn-secondary btn-xs"
+                    >
+                      ⬇️ Скачать
+                    </button>
                   </div>
-                )}
+                </div>
               </div>
-
-              {selectedDocument.comments && (
-                <div>
-                  <label className="block text-sm font-medium text-gray-400 mb-1">Комментарии</label>
-                  <div className="p-3 bg-gray-700 rounded text-white text-sm">
-                    {selectedDocument.comments}
-                  </div>
+              
+              {doc.comments && (
+                <div className="mt-4 p-3 bg-tech-surface rounded-lg border border-tech-border">
+                  <p className="text-tech-caption">{doc.comments}</p>
                 </div>
               )}
+            </div>
+          </div>
+        ))}
 
-              <div className="flex gap-4 pt-4">
-                <button
-                  onClick={() => handleDownload(selectedDocument)}
-                  className="btn-primary flex-1"
-                >
-                  Скачать документ
-                </button>
-                <button
-                  onClick={() => setSelectedDocument(null)}
-                  className="btn-secondary flex-1"
-                >
-                  Закрыть
-                </button>
+        {filteredDocuments.length === 0 && (
+          <div className="text-center py-16">
+            <div className="p-6 bg-tech-primary/5 rounded-2xl border border-tech-primary/10 inline-block mb-6">
+              <div className="text-4xl mb-2 animate-pulse-glow">📄</div>
+            </div>
+            <h3 className="text-tech-subtitle mb-3 text-gradient">
+              Документы не найдены
+            </h3>
+            <p className="text-tech-caption mb-6">
+              Загрузите первый документ для начала работы
+            </p>
+            <button
+              onClick={() => setUploadModal(true)}
+              className="btn-primary btn-sm"
+            >
+              ⬆️ Загрузить документы
+            </button>
+          </div>
+        )}
+      </div>
+
+      {/* Modern Upload Modal */}
+      {uploadModal && (
+        <div className="fixed inset-0 modal-backdrop z-50 flex items-center justify-center p-4" onClick={() => setUploadModal(false)}>
+          <div className="modal-content p-8 w-full max-w-2xl animate-fade-in" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center gap-4 mb-8">
+              <div className="p-3 bg-tech-primary/10 rounded-xl border border-tech-primary/20">
+                <span className="text-2xl">📤</span>
               </div>
+              <div>
+                <h3 className="text-tech-title">Загрузка документов</h3>
+                <p className="text-tech-caption">Перетащите файлы или выберите с компьютера</p>
+              </div>
+            </div>
+            
+            <div
+              className={`card-interactive border-2 border-dashed p-12 text-center transition-all duration-300 relative overflow-hidden ${
+                dragOver
+                  ? 'border-tech-primary bg-tech-primary/5 glow-tech-sm'
+                  : 'border-tech-border hover:border-tech-border-light'
+              }`}
+              onDragOver={handleDragOver}
+              onDragLeave={handleDragLeave}
+              onDrop={handleDrop}
+            >
+              <div className="text-5xl mb-6 animate-pulse-glow">📤</div>
+              <h4 className="text-tech-subtitle mb-3">Перетащите файлы сюда</h4>
+              <p className="text-tech-caption mb-6">или</p>
+              <input
+                type="file"
+                multiple
+                accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png"
+                onChange={(e) => handleFileUpload(e.target.files)}
+                className="hidden"
+                id="modal-file-upload"
+              />
+              <label htmlFor="modal-file-upload" className="btn-primary btn-sm cursor-pointer inline-flex items-center gap-2">
+                📁 Выбрать файлы
+              </label>
+              <div className="mt-4 text-tech-caption">
+                PDF, DOC, DOCX, XLS, XLSX, JPG, PNG (макс. 10MB)
+              </div>
+              {dragOver && (
+                <div className="absolute inset-0 bg-gradient-to-br from-tech-primary/10 via-transparent to-tech-secondary/10"></div>
+              )}
+            </div>
+
+            <div className="flex justify-end mt-8">
+              <button
+                onClick={() => setUploadModal(false)}
+                className="btn-secondary btn-sm"
+              >
+                ✕ Закрыть
+              </button>
             </div>
           </div>
         </div>

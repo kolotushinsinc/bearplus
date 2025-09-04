@@ -13,8 +13,10 @@ import RatesManagement from '../components/dashboard/RatesManagement';
 import MarginSettings from '../components/dashboard/MarginSettings';
 import CalculatorSettings from '../components/dashboard/CalculatorSettings';
 import LoyaltyManagement from '../components/dashboard/LoyaltyManagement';
+import CompanyInfoManagement from '../components/dashboard/CompanyInfoManagement';
+import CompanyPartnerships from '../components/dashboard/CompanyPartnerships';
 
-type DashboardTab = 'overview' | 'calculator' | 'orders' | 'documents' | 'messenger' | 'tracking' | 'profile' | 'rates' | 'margins' | 'calculator-settings' | 'loyalty';
+type DashboardTab = 'overview' | 'calculator' | 'orders' | 'documents' | 'messenger' | 'tracking' | 'profile' | 'company-info' | 'partnerships' | 'rates' | 'margins' | 'calculator-settings' | 'loyalty';
 
 const DashboardPage: React.FC = () => {
   const dispatch = useAppDispatch();
@@ -46,6 +48,8 @@ const DashboardPage: React.FC = () => {
     { id: 'documents', label: 'Документы', icon: '📄' },
     { id: 'messenger', label: 'Сообщения', icon: '💬' },
     { id: 'tracking', label: 'Судовая карта', icon: '🗺️' },
+    { id: 'company-info', label: 'Информация о компании', icon: '🏢' },
+    { id: 'partnerships', label: 'Сотрудничество', icon: '🤝' },
     { id: 'profile', label: 'Профиль', icon: '👤' }
   ];
 
@@ -61,160 +65,173 @@ const DashboardPage: React.FC = () => {
     : baseTabs;
 
   const renderOverview = () => (
-    <div className="space-y-6">
-      <div className="text-center mb-8">
-        <h1 className="text-3xl font-bold text-white mb-4">
-          Добро пожаловать, {user.firstName} {user.lastName}!
-        </h1>
-        <p className="text-gray-300">Управляйте своими логистическими операциями</p>
-      </div>
-
-      {/* Quick Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-        <div className="card text-center">
-          <div className="text-2xl font-bold text-bearplus-green mb-2">5</div>
-          <div className="text-gray-400 text-sm">Активных заявок</div>
+    <div className="space-y-8">
+      {/* Modern Stats Grid */}
+      <div className="grid tech-grid-4 gap-6 mb-8">
+        <div className="card-interactive text-center group">
+          <div className="flex items-center justify-center mb-3">
+            <div className="p-3 bg-tech-success/10 rounded-lg border border-tech-success/20 group-hover:glow-tech-sm transition-all">
+              <span className="text-2xl text-gradient font-bold">5</span>
+            </div>
+          </div>
+          <div className="text-tech-caption font-medium">Активных заявок</div>
+          <div className="progress-bar mt-2">
+            <div className="progress-fill" style={{width: '65%'}}></div>
+          </div>
         </div>
-        <div className="card text-center">
-          <div className="text-2xl font-bold text-bearplus-green mb-2">12</div>
-          <div className="text-gray-400 text-sm">Завершенных заявок</div>
+        <div className="card-interactive text-center group">
+          <div className="flex items-center justify-center mb-3">
+            <div className="p-3 bg-tech-info/10 rounded-lg border border-tech-info/20 group-hover:glow-tech-sm transition-all">
+              <span className="text-2xl text-gradient font-bold">12</span>
+            </div>
+          </div>
+          <div className="text-tech-caption font-medium">Завершенных заявок</div>
+          <div className="progress-bar mt-2">
+            <div className="progress-fill" style={{width: '85%'}}></div>
+          </div>
         </div>
-        <div className="card text-center">
-          <div className="text-2xl font-bold text-bearplus-green mb-2">3</div>
-          <div className="text-gray-400 text-sm">Судов в пути</div>
+        <div className="card-interactive text-center group">
+          <div className="flex items-center justify-center mb-3">
+            <div className="p-3 bg-tech-warning/10 rounded-lg border border-tech-warning/20 group-hover:glow-tech-sm transition-all">
+              <span className="text-2xl text-gradient font-bold">3</span>
+            </div>
+          </div>
+          <div className="text-tech-caption font-medium">Судов в пути</div>
+          <div className="progress-bar mt-2">
+            <div className="progress-fill" style={{width: '45%'}}></div>
+          </div>
         </div>
-        <div className="card text-center">
-          <div className="text-2xl font-bold text-bearplus-green mb-2">24</div>
-          <div className="text-gray-400 text-sm">Документов</div>
-        </div>
-      </div>
-
-      {/* Quick Actions */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        <div className="card hover:shadow-glow-sm transition-all duration-300 cursor-pointer"
-             onClick={() => setActiveTab('calculator')}>
-          <div className="text-3xl mb-4">🧮</div>
-          <h3 className="text-lg font-semibold text-white mb-2">Рассчитать доставку</h3>
-          <p className="text-gray-300 text-sm">Получите стоимость доставки груза</p>
-        </div>
-
-        <div className="card hover:shadow-glow-sm transition-all duration-300 cursor-pointer"
-             onClick={() => setActiveTab('orders')}>
-          <div className="text-3xl mb-4">📋</div>
-          <h3 className="text-lg font-semibold text-white mb-2">Создать заявку</h3>
-          <p className="text-gray-300 text-sm">Оформите новую заявку на перевозку</p>
-        </div>
-
-        <div className="card hover:shadow-glow-sm transition-all duration-300 cursor-pointer"
-             onClick={() => setActiveTab('tracking')}>
-          <div className="text-3xl mb-4">🗺️</div>
-          <h3 className="text-lg font-semibold text-white mb-2">Отследить груз</h3>
-          <p className="text-gray-300 text-sm">Посмотрите текущее местоположение</p>
-        </div>
-
-        <div className="card hover:shadow-glow-sm transition-all duration-300 cursor-pointer"
-             onClick={() => setActiveTab('documents')}>
-          <div className="text-3xl mb-4">📄</div>
-          <h3 className="text-lg font-semibold text-white mb-2">Загрузить документы</h3>
-          <p className="text-gray-300 text-sm">Управление документооборотом</p>
-        </div>
-
-        <div className="card hover:shadow-glow-sm transition-all duration-300 cursor-pointer"
-             onClick={() => setActiveTab('messenger')}>
-          <div className="text-3xl mb-4">💬</div>
-          <h3 className="text-lg font-semibold text-white mb-2">Связаться с логистом</h3>
-          <p className="text-gray-300 text-sm">Прямой диалог со специалистом</p>
-        </div>
-
-        <div className="card hover:shadow-glow-sm transition-all duration-300 cursor-pointer"
-             onClick={() => setActiveTab('profile')}>
-          <div className="text-3xl mb-4">👤</div>
-          <h3 className="text-lg font-semibold text-white mb-2">Настройки профиля</h3>
-          <p className="text-gray-300 text-sm">Управление аккаунтом</p>
+        <div className="card-interactive text-center group">
+          <div className="flex items-center justify-center mb-3">
+            <div className="p-3 bg-tech-secondary/10 rounded-lg border border-tech-secondary/20 group-hover:glow-tech-sm transition-all">
+              <span className="text-2xl text-gradient font-bold">24</span>
+            </div>
+          </div>
+          <div className="text-tech-caption font-medium">Документов</div>
+          <div className="progress-bar mt-2">
+            <div className="progress-fill" style={{width: '92%'}}></div>
+          </div>
         </div>
       </div>
 
-      {/* Recent Activity */}
+      {/* Modern Quick Actions */}
+      <div className="grid tech-grid-3 gap-6">
+        {[
+          { tab: 'calculator', icon: '🧮', title: 'Рассчитать доставку', desc: 'Получите стоимость доставки груза', color: 'tech-primary' },
+          { tab: 'orders', icon: '📋', title: 'Создать заявку', desc: 'Оформите новую заявку на перевозку', color: 'tech-secondary' },
+          { tab: 'tracking', icon: '🗺️', title: 'Отследить груз', desc: 'Посмотрите текущее местоположение', color: 'tech-accent' },
+          { tab: 'documents', icon: '📄', title: 'Загрузить документы', desc: 'Управление документооборотом', color: 'tech-info' },
+          { tab: 'messenger', icon: '💬', title: 'Связаться с логистом', desc: 'Прямой диалог со специалистом', color: 'tech-warning' },
+          { tab: 'profile', icon: '👤', title: 'Настройки профиля', desc: 'Управление аккаунтом', color: 'tech-error' }
+        ].slice(0, 6).map((action) => (
+          <div
+            key={action.tab}
+            className="card-interactive cursor-pointer group relative overflow-hidden"
+            onClick={() => setActiveTab(action.tab as DashboardTab)}
+          >
+            <div className="absolute inset-0 bg-gradient-to-br from-tech-primary/5 via-transparent to-tech-secondary/5 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+            <div className="relative z-10">
+              <div className="flex items-start gap-4">
+                <div className="p-2 bg-tech-surface-elevated rounded-lg border border-tech-border-light group-hover:border-tech-primary/50 transition-colors">
+                  <span className="text-lg">{action.icon}</span>
+                </div>
+                <div className="flex-1">
+                  <h3 className="text-tech-subtitle mb-2 group-hover:text-gradient transition-colors">{action.title}</h3>
+                  <p className="text-tech-caption">{action.desc}</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Modern Activity Feed */}
       <div className="card">
-        <h3 className="text-xl font-bold text-white mb-4">Последняя активность</h3>
-        <div className="space-y-4">
-          <div className="flex items-center justify-between p-3 bg-bearplus-card-dark rounded-lg">
-            <div className="flex items-center">
-              <div className="w-2 h-2 bg-bearplus-green rounded-full mr-3"></div>
-              <div>
-                <div className="text-white font-medium">Заявка #ORD-2024-001 обновлена</div>
-                <div className="text-gray-400 text-sm">Груз прибыл в порт Шанхай</div>
-              </div>
-            </div>
-            <div className="text-gray-500 text-sm">2 часа назад</div>
+        <div className="flex items-center gap-3 mb-6">
+          <div className="p-2 bg-tech-primary/10 rounded-lg border border-tech-primary/20">
+            <span className="text-lg">📊</span>
           </div>
-          
-          <div className="flex items-center justify-between p-3 bg-bearplus-card-dark rounded-lg">
-            <div className="flex items-center">
-              <div className="w-2 h-2 bg-blue-500 rounded-full mr-3"></div>
-              <div>
-                <div className="text-white font-medium">Новое сообщение от логиста</div>
-                <div className="text-gray-400 text-sm">Требуется дополнительный документ</div>
+          <h3 className="text-tech-subtitle">Последняя активность</h3>
+        </div>
+        <div className="space-y-3">
+          {[
+            { type: 'success', icon: '✅', title: 'Заявка #ORD-2024-001 обновлена', desc: 'Груз прибыл в порт Шанхай', time: '2 часа назад' },
+            { type: 'info', icon: '💬', title: 'Новое сообщение от логиста', desc: 'Требуется дополнительный документ', time: '5 часов назад' },
+            { type: 'warning', icon: '📄', title: 'Документ загружен', desc: 'Commercial_Invoice.pdf', time: '1 день назад' }
+          ].map((activity, index) => (
+            <div key={index} className="flex items-center gap-4 p-4 bg-tech-surface rounded-lg border border-tech-border hover:border-tech-border-light transition-colors group">
+              <div className={`p-2 rounded-lg border ${
+                activity.type === 'success' ? 'bg-tech-success/10 border-tech-success/20' :
+                activity.type === 'info' ? 'bg-tech-info/10 border-tech-info/20' :
+                'bg-tech-warning/10 border-tech-warning/20'
+              }`}>
+                <span className="text-sm">{activity.icon}</span>
               </div>
-            </div>
-            <div className="text-gray-500 text-sm">5 часов назад</div>
-          </div>
-          
-          <div className="flex items-center justify-between p-3 bg-bearplus-card-dark rounded-lg">
-            <div className="flex items-center">
-              <div className="w-2 h-2 bg-yellow-500 rounded-full mr-3"></div>
-              <div>
-                <div className="text-white font-medium">Документ загружен</div>
-                <div className="text-gray-400 text-sm">Commercial_Invoice.pdf</div>
+              <div className="flex-1">
+                <div className="text-tech-body font-medium group-hover:text-gradient transition-colors">{activity.title}</div>
+                <div className="text-tech-caption">{activity.desc}</div>
               </div>
+              <div className="text-tech-mono text-xs">{activity.time}</div>
             </div>
-            <div className="text-gray-500 text-sm">1 день назад</div>
-          </div>
+          ))}
         </div>
       </div>
     </div>
   );
 
   return (
-    <div className="flex-1 py-8">
-      <div className="max-w-7xl mx-auto px-4">
-        {/* Navigation Tabs */}
-        <div className="flex flex-wrap gap-2 mb-8 border-b border-gray-700 pb-4">
+    <div className="flex-1 py-8 tech-container animate-fade-in">
+      {/* Modern Header */}
+      <div className="mb-8">
+        <div className="flex items-center gap-4 mb-6">
+          <div className="p-3 bg-tech-primary/10 rounded-xl border border-tech-primary/20">
+            <span className="text-2xl">🏠</span>
+          </div>
+          <div>
+            <h1 className="text-tech-title">Личный кабинет</h1>
+            <p className="text-tech-caption">
+              Добро пожаловать, <span className="text-gradient font-semibold">{user.firstName}</span>
+            </p>
+          </div>
+        </div>
+        
+        {/* Modern Navigation Tabs */}
+        <div className="filter-bar flex-wrap">
           {tabs.map((tab) => (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id as DashboardTab)}
-              className={`flex items-center px-4 py-2 rounded-lg font-medium transition-all duration-200 ${
-                activeTab === tab.id
-                  ? 'bg-bearplus-green text-black'
-                  : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+              className={`filter-btn flex items-center gap-2 ${
+                activeTab === tab.id ? 'active' : ''
               }`}
             >
-              <span className="mr-2">{tab.icon}</span>
-              {tab.label}
+              <span className="text-sm">{tab.icon}</span>
+              <span className="hidden sm:inline">{tab.label}</span>
             </button>
           ))}
         </div>
+      </div>
 
-        {/* Content */}
-        <div className="min-h-[600px]">
-          {activeTab === 'overview' && renderOverview()}
-          {activeTab === 'calculator' && <ShippingCalculator className="max-w-4xl mx-auto" />}
-          {activeTab === 'orders' && <OrdersManagement />}
-          {activeTab === 'documents' && <DocumentsManagement />}
-          {activeTab === 'messenger' && <MessengerSystem />}
-          {activeTab === 'tracking' && <ShipTrackingMap />}
-          {activeTab === 'profile' && <ProfileSettings onLogout={handleLogout} />}
-          {/* Agent-specific tabs */}
-          {user?.userType === 'agent' && (
-            <>
-              {activeTab === 'rates' && <RatesManagement />}
-              {activeTab === 'margins' && <MarginSettings />}
-              {activeTab === 'calculator-settings' && <CalculatorSettings />}
-              {activeTab === 'loyalty' && <LoyaltyManagement />}
-            </>
-          )}
-        </div>
+      {/* Content Area */}
+      <div className="min-h-[600px] animate-slide-up">
+        {activeTab === 'overview' && renderOverview()}
+        {activeTab === 'calculator' && <ShippingCalculator className="max-w-5xl mx-auto" />}
+        {activeTab === 'orders' && <OrdersManagement />}
+        {activeTab === 'documents' && <DocumentsManagement />}
+        {activeTab === 'messenger' && <MessengerSystem />}
+        {activeTab === 'tracking' && <ShipTrackingMap />}
+        {activeTab === 'company-info' && <CompanyInfoManagement />}
+        {activeTab === 'partnerships' && <CompanyPartnerships />}
+        {activeTab === 'profile' && <ProfileSettings />}
+        {/* Agent-specific tabs */}
+        {user?.userType === 'agent' && (
+          <>
+            {activeTab === 'rates' && <RatesManagement />}
+            {activeTab === 'margins' && <MarginSettings />}
+            {activeTab === 'calculator-settings' && <CalculatorSettings />}
+            {activeTab === 'loyalty' && <LoyaltyManagement />}
+          </>
+        )}
       </div>
     </div>
   );

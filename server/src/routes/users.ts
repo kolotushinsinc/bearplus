@@ -3,14 +3,14 @@ import { authenticateToken, authorize, checkOwnership } from '../middleware/auth
 import { validateUpdateProfile, validateChangePassword } from '../validators/authValidators';
 
 // Import actual controller functions
-const {
+import {
   getUserProfile,
   updateUserProfile,
   changePassword,
   deactivateAccount,
   getAllUsers,
   updateLoyaltyDiscount,
-} = require('../controllers/userController');
+} from '../controllers/userController';
 
 const router = express.Router();
 

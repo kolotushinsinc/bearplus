@@ -1,4 +1,5 @@
 import * as React from 'react';
+import { useNavigate } from 'react-router-dom';
 
 interface TariffBlock {
   id: string;
@@ -102,6 +103,8 @@ const TariffBlocks: React.FC<TariffBlocksProps> = ({ className = '' }) => {
     }
   ];
 
+  const navigate = useNavigate();
+
   const handleBlockClick = (link: string) => {
     if (link.startsWith('#')) {
       // Scroll to element on same page
@@ -110,8 +113,8 @@ const TariffBlocks: React.FC<TariffBlocksProps> = ({ className = '' }) => {
         element.scrollIntoView({ behavior: 'smooth' });
       }
     } else {
-      // Navigate to different page (you would use router here)
-      console.log('Navigate to:', link);
+      // Navigate to different page
+      navigate(link);
     }
   };
 

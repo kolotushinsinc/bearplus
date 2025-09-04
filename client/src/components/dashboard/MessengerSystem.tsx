@@ -1,6 +1,8 @@
 import * as React from 'react';
-import { useState, useRef, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAppSelector } from '../../hooks/redux';
+import { apiService } from '../../services/apiService';
 
 interface Message {
   id: string;
@@ -35,24 +37,23 @@ interface Chat {
 }
 
 const MessengerSystem: React.FC = () => {
+  const navigate = useNavigate();
   const { user } = useAppSelector((state) => state.auth);
   const [chats, setChats] = useState<Chat[]>([]);
   const [selectedChat, setSelectedChat] = useState<Chat | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState('');
   const [isLoading, setIsLoading] = useState(true);
-  const [isTyping, setIsTyping] = useState(false);
-  const messageInputRef = useRef<HTMLTextAreaElement>(null);
+  const [showNewChatModal, setShowNewChatModal] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    loadChats();
+    fetchChats();
   }, []);
 
   useEffect(() => {
     if (selectedChat) {
-      loadMessages(selectedChat.id);
+      fetchMessages(selectedChat.id);
     }
   }, [selectedChat]);
 
@@ -60,97 +61,38 @@ const MessengerSystem: React.FC = () => {
     scrollToBottom();
   }, [messages]);
 
-  const loadChats = async () => {
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  };
+
+  const fetchChats = async () => {
     try {
       setIsLoading(true);
+      const response = await apiService.messages.getChats({
+        page: 1,
+        limit: 20
+      });
       
-      // Mock chat data
-      const mockChats: Chat[] = [
-        {
-          id: '1',
-          title: 'Заявка ORD-2024-001',
-          participants: [
-            {
-              id: user?.id || 'client1',
-              name: user?.firstName + ' ' + user?.lastName || 'Клиент',
-              type: 'client',
-              isOnline: true
-            },
-            {
-              id: 'agent1',
-              name: 'Анна Петрова',
-              type: 'agent',
-              avatar: '/avatars/agent1.jpg',
-              isOnline: true
-            }
-          ],
-          lastMessage: {
-            id: 'msg1',
-            chatId: '1',
-            senderId: 'agent1',
-            senderName: 'Анна Петрова',
-            senderType: 'agent',
-            content: 'Документы получены, начинаем обработку заявки',
-            type: 'text',
-            timestamp: '2024-01-16T14:30:00Z',
-            isRead: false
-          },
-          unreadCount: 2,
-          orderId: 'ORD-2024-001',
-          status: 'active',
-          createdAt: '2024-01-15T10:00:00Z'
-        },
-        {
-          id: '2',
-          title: 'Общие вопросы',
-          participants: [
-            {
-              id: user?.id || 'client1',
-              name: user?.firstName + ' ' + user?.lastName || 'Клиент',
-              type: 'client',
-              isOnline: true
-            },
-            {
-              id: 'agent2',
-              name: 'Михаил Сидоров',
-              type: 'agent',
-              avatar: '/avatars/agent2.jpg',
-              isOnline: false
-            }
-          ],
-          lastMessage: {
-            id: 'msg2',
-            chatId: '2',
-            senderId: user?.id || 'client1',
-            senderName: user?.firstName + ' ' + user?.lastName || 'Клиент',
-            senderType: 'client',
-            content: 'Спасибо за помощь!',
-            type: 'text',
-            timestamp: '2024-01-15T16:45:00Z',
-            isRead: true
-          },
-          unreadCount: 0,
-          status: 'active',
-          createdAt: '2024-01-14T09:00:00Z'
+      if (response.success) {
+        setChats(response.data || []);
+        if (response.data && response.data.length > 0) {
+          setSelectedChat(response.data[0]);
         }
-      ];
-
-      setTimeout(() => {
-        setChats(mockChats);
-        if (mockChats.length > 0) {
-          setSelectedChat(mockChats[0]);
-        }
-        setIsLoading(false);
-      }, 500);
+      } else {
+        console.error('Failed to fetch chats:', response);
+        setChats([]);
+      }
     } catch (error) {
-      console.error('Error loading chats:', error);
+      console.error('Error fetching chats:', error);
+      setChats([]);
+    } finally {
       setIsLoading(false);
     }
   };
 
-  const loadMessages = async (chatId: string) => {
+  const fetchMessages = async (chatId: string) => {
     try {
-      // Mock messages data
+      // Mock messages data - replace with API call
       const mockMessages: Message[] = [
         {
           id: '1',
@@ -208,51 +150,25 @@ const MessengerSystem: React.FC = () => {
           type: 'text',
           timestamp: '2024-01-16T14:30:00Z',
           isRead: false
-        },
-        {
-          id: '6',
-          chatId: chatId,
-          senderId: 'system',
-          senderName: 'Система',
-          senderType: 'system',
-          content: 'Статус заявки изменен на "В обработке"',
-          type: 'system',
-          timestamp: '2024-01-16T14:31:00Z',
-          isRead: false,
-          orderId: 'ORD-2024-001'
         }
       ];
 
       setMessages(mockMessages);
-      
-      // Mark messages as read
-      markMessagesAsRead(chatId);
     } catch (error) {
-      console.error('Error loading messages:', error);
+      console.error('Error fetching messages:', error);
     }
   };
 
-  const markMessagesAsRead = async (chatId: string) => {
-    try {
-      // Update unread count in chat
-      setChats(prev => prev.map(chat => 
-        chat.id === chatId ? { ...chat, unreadCount: 0 } : chat
-      ));
-    } catch (error) {
-      console.error('Error marking messages as read:', error);
-    }
-  };
-
-  const sendMessage = async () => {
+  const handleSendMessage = async () => {
     if (!newMessage.trim() || !selectedChat) return;
 
     const message: Message = {
       id: Date.now().toString(),
       chatId: selectedChat.id,
-      senderId: user?.id || 'client1',
-      senderName: user?.firstName + ' ' + user?.lastName || 'Клиент',
-      senderType: 'client',
-      content: newMessage.trim(),
+      senderId: user?.id || 'user1',
+      senderName: user?.firstName + ' ' + user?.lastName || 'Пользователь',
+      senderType: user?.userType || 'client',
+      content: newMessage,
       type: 'text',
       timestamp: new Date().toISOString(),
       isRead: false
@@ -261,80 +177,22 @@ const MessengerSystem: React.FC = () => {
     setMessages(prev => [...prev, message]);
     setNewMessage('');
 
-    // Update chat's last message
-    setChats(prev => prev.map(chat => 
-      chat.id === selectedChat.id 
-        ? { ...chat, lastMessage: message }
-        : chat
-    ));
-
-    // Show typing indicator for agent response
-    setIsTyping(true);
-    setTimeout(() => {
-      setIsTyping(false);
-      // Simulate agent response
-      const agentResponse: Message = {
-        id: (Date.now() + 1).toString(),
-        chatId: selectedChat.id,
-        senderId: 'agent1',
-        senderName: 'Анна Петрова',
-        senderType: 'agent',
-        content: 'Спасибо за сообщение! Я обработаю ваш запрос и свяжусь с вами в ближайшее время.',
-        type: 'text',
-        timestamp: new Date().toISOString(),
-        isRead: false
-      };
-      setMessages(prev => [...prev, agentResponse]);
-    }, 2000);
+    // In production, send message to API
+    console.log('Sending message:', message);
   };
 
-  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file || !selectedChat) return;
-
-    // Create file message
-    const fileMessage: Message = {
-      id: Date.now().toString(),
-      chatId: selectedChat.id,
-      senderId: user?.id || 'client1',
-      senderName: user?.firstName + ' ' + user?.lastName || 'Клиент',
-      senderType: 'client',
-      content: file.name,
-      type: file.type.startsWith('image/') ? 'image' : 'file',
-      fileUrl: URL.createObjectURL(file),
-      fileName: file.name,
-      timestamp: new Date().toISOString(),
-      isRead: false
-    };
-
-    setMessages(prev => [...prev, fileMessage]);
-
-    // Update chat's last message
-    setChats(prev => prev.map(chat => 
-      chat.id === selectedChat.id 
-        ? { ...chat, lastMessage: fileMessage }
-        : chat
-    ));
-
-    // Reset file input
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
-    }
-  };
-
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  };
-
-  const formatMessageTime = (timestamp: string) => {
+  const formatTime = (timestamp: string) => {
     const date = new Date(timestamp);
     const now = new Date();
-    const isToday = date.toDateString() === now.toDateString();
-    
-    if (isToday) {
+    const diff = now.getTime() - date.getTime();
+    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+
+    if (days === 0) {
       return date.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+    } else if (days === 1) {
+      return 'Вчера';
     } else {
-      return date.toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit' });
+      return date.toLocaleDateString('ru-RU');
     }
   };
 
@@ -347,24 +205,82 @@ const MessengerSystem: React.FC = () => {
   }
 
   return (
-    <div className="h-[600px] flex bg-bearplus-card-dark rounded-xl border border-gray-700 overflow-hidden">
-      {/* Chat List */}
-      <div className="w-1/3 border-r border-gray-700 flex flex-col">
-        <div className="p-4 border-b border-gray-700">
-          <h3 className="text-lg font-semibold text-white">Сообщения</h3>
+    <div className="space-y-8 animate-fade-in">
+      {/* Modern Header */}
+      <div className="flex justify-between items-center">
+        <div className="flex items-center gap-4">
+          <div className="p-3 bg-tech-primary/10 rounded-xl border border-tech-primary/20">
+            <span className="text-2xl">💬</span>
+          </div>
+          <div>
+            <h2 className="text-tech-title">Мессенджер</h2>
+            <p className="text-tech-caption">Общайтесь с логистами в реальном времени</p>
+          </div>
         </div>
-        
-        <div className="flex-1 overflow-y-auto">
-          {chats.map((chat) => (
+        <button
+          onClick={() => navigate('/messenger')}
+          className="btn-primary btn-sm"
+        >
+          🚀 Полный мессенджер
+        </button>
+      </div>
+
+      {/* Modern Stats */}
+      <div className="grid tech-grid-3 gap-6">
+        <div className="card-interactive text-center group">
+          <div className="flex items-center justify-center mb-3">
+            <div className="p-3 bg-tech-error/10 rounded-lg border border-tech-error/20 group-hover:glow-tech-sm transition-all">
+              <span className="text-2xl text-gradient font-bold">{chats.reduce((acc, chat) => acc + chat.unreadCount, 0)}</span>
+            </div>
+          </div>
+          <div className="text-tech-caption font-medium">Непрочитанные</div>
+          <div className="progress-bar mt-2">
+            <div className="progress-fill" style={{width: '30%'}}></div>
+          </div>
+        </div>
+        <div className="card-interactive text-center group">
+          <div className="flex items-center justify-center mb-3">
+            <div className="p-3 bg-tech-info/10 rounded-lg border border-tech-info/20 group-hover:glow-tech-sm transition-all">
+              <span className="text-2xl text-gradient font-bold">{chats.length}</span>
+            </div>
+          </div>
+          <div className="text-tech-caption font-medium">Активные чаты</div>
+          <div className="progress-bar mt-2">
+            <div className="progress-fill" style={{width: '75%'}}></div>
+          </div>
+        </div>
+        <div className="card-interactive text-center group">
+          <div className="flex items-center justify-center mb-3">
+            <div className="p-3 bg-tech-success/10 rounded-lg border border-tech-success/20 group-hover:glow-tech-sm transition-all">
+              <span className="text-2xl text-gradient font-bold">
+                {chats.reduce((acc, chat) =>
+                  acc + chat.participants.filter(p => p.type === 'agent' && p.isOnline).length, 0
+                )}
+              </span>
+            </div>
+          </div>
+          <div className="text-tech-caption font-medium">Онлайн агентов</div>
+          <div className="progress-bar mt-2">
+            <div className="progress-fill" style={{width: '90%'}}></div>
+          </div>
+        </div>
+      </div>
+
+      {/* Recent Chats Preview */}
+      <div className="bg-bearplus-card rounded-lg">
+        <div className="p-4 border-b border-gray-700">
+          <h3 className="text-lg font-semibold text-white">Последние сообщения</h3>
+        </div>
+
+        <div className="max-h-80 overflow-y-auto">
+          {chats.slice(0, 3).map((chat) => (
             <div
               key={chat.id}
-              onClick={() => setSelectedChat(chat)}
-              className={`p-4 border-b border-gray-700/50 cursor-pointer hover:bg-gray-700/50 transition-colors ${
-                selectedChat?.id === chat.id ? 'bg-gray-700/50' : ''
-              }`}
+              onClick={() => navigate('/messenger')}
+              className="p-4 border-b border-gray-800 cursor-pointer hover:bg-bearplus-card-dark transition-colors"
             >
               <div className="flex justify-between items-start mb-2">
-                <h4 className="font-medium text-white text-sm">{chat.title}</h4>
+                <h4 className="font-medium text-white truncate">{chat.title}</h4>
                 {chat.unreadCount > 0 && (
                   <span className="bg-bearplus-green text-black text-xs rounded-full px-2 py-1 min-w-[20px] text-center">
                     {chat.unreadCount}
@@ -372,203 +288,100 @@ const MessengerSystem: React.FC = () => {
                 )}
               </div>
               
-              <div className="flex items-center mb-2">
+              {chat.lastMessage && (
+                <div className="text-sm text-gray-400">
+                  <p className="truncate">{chat.lastMessage.content}</p>
+                  <p className="text-xs mt-1">{formatTime(chat.lastMessage.timestamp)}</p>
+                </div>
+              )}
+
+              <div className="flex items-center mt-2">
                 {chat.participants
                   .filter(p => p.id !== user?.id)
                   .map((participant) => (
-                    <div key={participant.id} className="flex items-center mr-2">
-                      <div className={`w-2 h-2 rounded-full mr-1 ${
+                    <div key={participant.id} className="flex items-center">
+                      <div className={`w-2 h-2 rounded-full mr-2 ${
                         participant.isOnline ? 'bg-green-400' : 'bg-gray-500'
                       }`}></div>
-                      <span className="text-xs text-gray-400">{participant.name}</span>
+                      <span className="text-xs text-gray-500">{participant.name}</span>
                     </div>
                   ))}
-              </div>
-
-              {chat.lastMessage && (
-                <div className="text-xs text-gray-500 truncate">
-                  <span className="font-medium">
-                    {chat.lastMessage.senderType === 'client' && chat.lastMessage.senderId === user?.id ? 'Вы: ' : 
-                     chat.lastMessage.senderType === 'system' ? 'Система: ' :
-                     chat.lastMessage.senderName + ': '}
-                  </span>
-                  {chat.lastMessage.type === 'file' ? '📎 ' + chat.lastMessage.fileName : chat.lastMessage.content}
-                </div>
-              )}
-              
-              <div className="text-xs text-gray-600 mt-1">
-                {chat.lastMessage && formatMessageTime(chat.lastMessage.timestamp)}
               </div>
             </div>
           ))}
         </div>
+
+        {chats.length > 3 && (
+          <div className="p-4 text-center border-t border-gray-700">
+            <button 
+              onClick={() => navigate('/messenger')}
+              className="text-bearplus-green hover:text-green-400 text-sm"
+            >
+              Показать все чаты ({chats.length})
+            </button>
+          </div>
+        )}
       </div>
 
-      {/* Chat Window */}
-      {selectedChat ? (
-        <div className="flex-1 flex flex-col">
-          {/* Chat Header */}
-          <div className="p-4 border-b border-gray-700 bg-gray-800/50">
-            <div className="flex justify-between items-center">
-              <div>
-                <h3 className="font-semibold text-white">{selectedChat.title}</h3>
-                <div className="flex items-center text-sm text-gray-400">
-                  {selectedChat.participants
-                    .filter(p => p.id !== user?.id)
-                    .map((participant, index) => (
-                      <div key={participant.id} className="flex items-center">
-                        {index > 0 && <span className="mx-1">,</span>}
-                        <div className={`w-2 h-2 rounded-full mr-1 ${
-                          participant.isOnline ? 'bg-green-400' : 'bg-gray-500'
-                        }`}></div>
-                        <span>{participant.name}</span>
-                        <span className="ml-1">
-                          ({participant.isOnline ? 'онлайн' : 'не в сети'})
-                        </span>
-                      </div>
-                    ))}
-                </div>
-              </div>
-              {selectedChat.orderId && (
-                <div className="text-xs text-bearplus-green bg-bearplus-green/10 px-2 py-1 rounded">
-                  {selectedChat.orderId}
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Messages */}
-          <div className="flex-1 overflow-y-auto p-4 space-y-4">
-            {messages.map((message) => (
-              <div
-                key={message.id}
-                className={`flex ${
-                  message.senderId === user?.id ? 'justify-end' : 'justify-start'
-                }`}
-              >
-                <div className={`max-w-[70%] ${
-                  message.senderType === 'system' 
-                    ? 'mx-auto bg-gray-700/50 text-center text-xs text-gray-400 px-3 py-2 rounded-full'
-                    : message.senderId === user?.id
-                    ? 'bg-bearplus-green text-black'
-                    : 'bg-gray-700 text-white'
-                } rounded-lg p-3`}>
-                  
-                  {message.senderType !== 'system' && message.senderId !== user?.id && (
-                    <div className="text-xs text-gray-300 mb-1 font-medium">
-                      {message.senderName}
-                    </div>
-                  )}
-
-                  {message.type === 'file' || message.type === 'image' ? (
-                    <div className="space-y-2">
-                      {message.type === 'image' ? (
-                        <img 
-                          src={message.fileUrl} 
-                          alt={message.fileName}
-                          className="max-w-full rounded cursor-pointer"
-                          onClick={() => window.open(message.fileUrl, '_blank')}
-                        />
-                      ) : (
-                        <div className="flex items-center space-x-2 bg-black/20 p-2 rounded">
-                          <span>📎</span>
-                          <span className="text-sm">{message.fileName}</span>
-                          <button 
-                            onClick={() => window.open(message.fileUrl, '_blank')}
-                            className="text-xs underline hover:no-underline"
-                          >
-                            Скачать
-                          </button>
-                        </div>
-                      )}
-                      {message.content !== message.fileName && (
-                        <div className="text-sm">{message.content}</div>
-                      )}
-                    </div>
-                  ) : (
-                    <div className="text-sm">{message.content}</div>
-                  )}
-
-                  <div className={`text-xs mt-1 ${
-                    message.senderId === user?.id ? 'text-black/70' : 'text-gray-400'
-                  }`}>
-                    {formatMessageTime(message.timestamp)}
-                  </div>
-                </div>
-              </div>
-            ))}
-
-            {/* Typing Indicator */}
-            {isTyping && (
-              <div className="flex justify-start">
-                <div className="bg-gray-700 text-white rounded-lg p-3 max-w-[70%]">
-                  <div className="flex items-center space-x-1">
-                    <div className="flex space-x-1">
-                      <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
-                      <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
-                      <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
-                    </div>
-                    <span className="text-xs text-gray-400 ml-2">печатает...</span>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            <div ref={messagesEndRef} />
-          </div>
-
-          {/* Message Input */}
-          <div className="p-4 border-t border-gray-700">
-            <div className="flex items-end space-x-2">
-              <button
-                onClick={() => fileInputRef.current?.click()}
-                className="p-2 text-gray-400 hover:text-bearplus-green transition-colors"
-                title="Прикрепить файл"
-              >
-                📎
-              </button>
-              
-              <div className="flex-1">
-                <textarea
-                  ref={messageInputRef}
-                  value={newMessage}
-                  onChange={(e) => setNewMessage(e.target.value)}
-                  onKeyPress={(e) => {
-                    if (e.key === 'Enter' && !e.shiftKey) {
-                      e.preventDefault();
-                      sendMessage();
-                    }
-                  }}
-                  placeholder="Введите сообщение..."
-                  className="input-field w-full resize-none"
-                  rows={1}
-                />
-              </div>
-              
-              <button
-                onClick={sendMessage}
-                disabled={!newMessage.trim()}
-                className="btn-primary px-4 py-2"
-              >
-                Отправить
-              </button>
-            </div>
-          </div>
-
-          {/* Hidden file input */}
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="*/*"
-            onChange={handleFileUpload}
-            className="hidden"
-          />
+      {/* Quick Actions */}
+      <div className="bg-bearplus-card rounded-lg p-6">
+        <h3 className="text-lg font-semibold text-white mb-4">Быстрые действия</h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <button 
+            onClick={() => navigate('/messenger')}
+            className="btn-secondary flex items-center justify-center space-x-2"
+          >
+            <span>📝</span>
+            <span>Написать сообщение</span>
+          </button>
+          <button 
+            onClick={() => setShowNewChatModal(true)}
+            className="btn-secondary flex items-center justify-center space-x-2"
+          >
+            <span>👥</span>
+            <span>Новый чат с агентом</span>
+          </button>
         </div>
-      ) : (
-        <div className="flex-1 flex items-center justify-center text-gray-400">
-          <div className="text-center">
-            <div className="text-4xl mb-4">💬</div>
-            <div>Выберите чат для начала общения</div>
+      </div>
+
+      {/* Modern New Chat Modal */}
+      {showNewChatModal && (
+        <div className="fixed inset-0 modal-backdrop z-50 flex items-center justify-center p-4" onClick={() => setShowNewChatModal(false)}>
+          <div className="modal-content p-8 w-full max-w-lg animate-fade-in" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center gap-4 mb-6">
+              <div className="p-3 bg-tech-secondary/10 rounded-xl border border-tech-secondary/20">
+                <span className="text-2xl">💬</span>
+              </div>
+              <div>
+                <h3 className="text-tech-title">Создать новый чат</h3>
+                <p className="text-tech-caption">Свяжитесь с нашими логистами</p>
+              </div>
+            </div>
+            
+            <div className="alert alert-success mb-6">
+              <span className="text-lg">👋</span>
+              <span>Новый чат будет создан с нашими логистами для решения ваших вопросов</span>
+            </div>
+            
+            <div className="flex gap-3">
+              <button
+                onClick={() => {
+                  // In production, create new chat
+                  console.log('Creating new chat');
+                  setShowNewChatModal(false);
+                  navigate('/messenger');
+                }}
+                className="btn-primary flex-1"
+              >
+                💬 Создать чат
+              </button>
+              <button
+                onClick={() => setShowNewChatModal(false)}
+                className="btn-secondary btn-sm px-6"
+              >
+                Отмена
+              </button>
+            </div>
           </div>
         </div>
       )}
