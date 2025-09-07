@@ -54,32 +54,85 @@ const Sidebar: React.FC = () => {
   };
 
   return (
-    <Sider width={250} theme="dark">
+    <Sider 
+      width={280} 
+      style={{
+        overflow: 'auto',
+        height: '100vh',
+        position: 'fixed',
+        left: 0,
+        top: 0,
+        bottom: 0,
+      }}
+      className="slide-in"
+    >
+      {/* Modern Header */}
       <div style={{
-        height: '64px',
+        height: '80px',
         display: 'flex',
+        flexDirection: 'column',
         alignItems: 'center',
         justifyContent: 'center',
-        borderBottom: '1px solid #303030'
+        borderBottom: '1px solid rgba(0, 255, 136, 0.1)',
+        background: 'rgba(5, 10, 5, 0.8)',
+        padding: '20px'
       }}>
-        <h2 style={{ 
-          color: '#52c41a', 
-          margin: 0, 
-          fontSize: '18px',
-          fontWeight: 'bold'
+        <div style={{
+          color: '#00ff88',
+          fontSize: '24px',
+          fontWeight: '700',
+          background: 'linear-gradient(135deg, #00ff88, #1de9b6)',
+          WebkitBackgroundClip: 'text',
+          WebkitTextFillColor: 'transparent',
+          backgroundClip: 'text',
+          marginBottom: '4px'
         }}>
-          BearPlus CRM
-        </h2>
+          BearPlus
+        </div>
+        <div style={{
+          color: '#666',
+          fontSize: '12px',
+          textTransform: 'uppercase',
+          letterSpacing: '1px',
+          fontWeight: '500'
+        }}>
+          CRM System
+        </div>
       </div>
-      
-      <Menu
-        theme="dark"
-        mode="inline"
-        selectedKeys={[location.pathname]}
-        items={menuItems}
-        onClick={handleMenuClick}
-        style={{ height: 'calc(100vh - 64px)', borderRight: 0 }}
-      />
+
+      {/* Navigation Menu */}
+      <div style={{ 
+        flex: 1, 
+        padding: '16px 0',
+        height: 'calc(100vh - 160px)',
+        overflowY: 'auto'
+      }}>
+        <Menu
+          mode="inline"
+          selectedKeys={[location.pathname]}
+          items={menuItems}
+          onClick={handleMenuClick}
+          style={{ 
+            borderRight: 0,
+            background: 'transparent'
+          }}
+        />
+      </div>
+
+      {/* Footer with KolTech Branding */}
+      <div className="sidebar-footer">
+        <div className="koltech-branding">
+          Powered by <span className="highlight">KolTech</span>
+        </div>
+        <div style={{
+          color: '#444',
+          fontSize: '10px',
+          marginTop: '4px',
+          letterSpacing: '0.3px'
+        }}>
+          © 2025 Professional Development
+        </div>
+      </div>
     </Sider>
   );
 };

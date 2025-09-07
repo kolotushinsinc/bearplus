@@ -6,7 +6,7 @@ interface Message {
   chatId: string;
   senderId: string;
   senderName: string;
-  senderType: 'client' | 'agent' | 'system';
+  senderType: 'client' | 'agent' | 'admin' | 'system';
   content: string;
   type: 'text' | 'file' | 'image' | 'system';
   fileUrl?: string;
@@ -22,7 +22,7 @@ interface Chat {
   participants: Array<{
     id: string;
     name: string;
-    type: 'client' | 'agent';
+    type: 'client' | 'agent' | 'admin';
     avatar?: string;
     isOnline: boolean;
   }>;
@@ -262,7 +262,7 @@ export const sendMessage = async (req: AuthRequest, res: Response): Promise<Resp
       chatId: chatId,
       senderId: req.user?.id || 'user1',
       senderName: req.user?.firstName + ' ' + req.user?.lastName || 'Пользователь',
-      senderType: req.user?.userType || 'client',
+      senderType: (req.user?.userType === 'admin' ? 'system' : req.user?.userType) || 'client',
       content: content,
       type: type,
       fileUrl: fileUrl,
@@ -332,7 +332,7 @@ export const createChat = async (req: AuthRequest, res: Response): Promise<Respo
         {
           id: req.user?.id || 'user1',
           name: req.user?.firstName + ' ' + req.user?.lastName || 'Пользователь',
-          type: req.user?.userType || 'client',
+          type: (req.user?.userType === 'admin' ? 'agent' : req.user?.userType) || 'client',
           isOnline: true
         },
         // In production, fetch other participants from database

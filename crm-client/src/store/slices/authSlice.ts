@@ -1,6 +1,16 @@
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
 import axios from 'axios';
 
+// Настройка axios для CRM
+const api = axios.create({
+  baseURL: 'http://localhost:5005',
+  withCredentials: true,
+  timeout: 10000,
+  headers: {
+    'Content-Type': 'application/json',
+  },
+});
+
 interface User {
   id: string;
   email: string;
@@ -21,7 +31,7 @@ interface AuthState {
 
 const initialState: AuthState = {
   user: null,
-  token: localStorage.getItem('crm_token'),
+  token: null,
   isAuthenticated: false,
   isLoading: false,
   error: null,
@@ -32,13 +42,9 @@ export const loginAdmin = createAsyncThunk(
   'auth/loginAdmin',
   async (credentials: { email: string; password: string }, { rejectWithValue }) => {
     try {
-      const response = await axios.post('/api/auth/login', {
-        ...credentials,
-        userType: 'admin'
-      });
+      const response = await api.post('/api/auth/login', credentials);
       
       if (response.data.success && response.data.user.userType === 'admin') {
-        localStorage.setItem('crm_token', response.data.token);
         return response.data;
       } else {
         return rejectWithValue('Доступ разрешен только администраторам');
@@ -53,17 +59,13 @@ export const verifyToken = createAsyncThunk(
   'auth/verifyToken',
   async (_, { rejectWithValue }) => {
     try {
-      const token = localStorage.getItem('crm_token');
-      if (!token) {
-        return rejectWithValue('Токен не найден');
+      const response = await api.get('/api/auth/me');
+
+      if (!response.data.success || !response.data.user) {
+        return rejectWithValue('Пользователь не найден');
       }
 
-      const response = await axios.get('/api/auth/verify', {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-
       if (response.data.user.userType !== 'admin') {
-        localStorage.removeItem('crm_token');
         return rejectWithValue('Недостаточно прав доступа');
       }
 
@@ -78,7 +80,11 @@ export const verifyToken = createAsyncThunk(
 export const logoutAdmin = createAsyncThunk(
   'auth/logoutAdmin',
   async () => {
-    localStorage.removeItem('crm_token');
+    try {
+      await api.post('/api/auth/logout');
+    } catch (error) {
+      // Игнорируем ошибки logout
+    }
     return null;
   }
 );

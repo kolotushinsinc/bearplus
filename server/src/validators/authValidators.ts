@@ -3,8 +3,8 @@ import { body, ValidationChain } from 'express-validator';
 // Валидация регистрации
 export const validateRegister: ValidationChain[] = [
   body('userType')
-    .isIn(['client', 'agent'])
-    .withMessage('User type must be either client or agent'),
+    .isIn(['client', 'agent', 'admin'])
+    .withMessage('User type must be either client, agent, or admin'),
 
   body('firstName')
     .trim()
@@ -58,13 +58,31 @@ export const validateRegister: ValidationChain[] = [
 
   body('organizationType')
     .optional()
-    .isIn(['llc', 'jsc', 'individual', 'foreign', 'other'])
+    .isIn(['oao', 'zao', 'ooo', 'ip'])
     .withMessage('Invalid organization type'),
 
   body('activityType')
     .optional()
-    .isIn(['freight_forwarder', 'customs_broker', 'transport_company', 'logistics', 'other'])
+    .isIn(['logistics_company', 'agency'])
     .withMessage('Invalid activity type'),
+
+  body('companyDescription')
+    .optional()
+    .trim()
+    .isLength({ max: 1000 })
+    .withMessage('Company description cannot exceed 1000 characters'),
+
+  body('legalAddress')
+    .optional()
+    .trim()
+    .isLength({ max: 200 })
+    .withMessage('Legal address cannot exceed 200 characters'),
+
+  body('actualAddress')
+    .optional()
+    .trim()
+    .isLength({ max: 200 })
+    .withMessage('Actual address cannot exceed 200 characters'),
 
   body('language')
     .optional()
@@ -82,6 +100,13 @@ export const validateRegister: ValidationChain[] = [
   body('activityType').custom((value, { req }) => {
     if (req.body.userType === 'agent' && !value) {
       throw new Error('Activity type is required for agents');
+    }
+    return true;
+  }),
+
+  body('companyName').custom((value, { req }) => {
+    if (req.body.userType === 'agent' && !value) {
+      throw new Error('Company name is required for agents');
     }
     return true;
   }),

@@ -292,4 +292,113 @@ export const generatePasswordResetCodeEmail = (
   return templates[language] || templates.ru;
 };
 
-// СТАРАЯ ФУНКЦИЯ УДАЛЕНА - больше не используется
+// Шаблон для кода подтверждения email при регистрации
+export const generateEmailVerificationCodeTemplate = (
+  verificationCode: string,
+  firstName: string,
+  language: 'ru' | 'en' | 'zh' = 'ru'
+): EmailTemplate => {
+  const templates: Record<string, EmailTemplate> = {
+    ru: {
+      subject: 'Код подтверждения email - BearPlus',
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #0a0f0a; color: #f0f9f0; padding: 40px; border-radius: 12px;">
+          <div style="text-align: center; margin-bottom: 30px;">
+            <h1 style="color: #00ff88; margin: 0; font-size: 28px;">BearPlus</h1>
+            <p style="color: #a8c8a8; margin: 10px 0 0 0;">Логистическая платформа</p>
+          </div>
+          
+          <h2 style="color: #e8f5e8; margin-bottom: 20px;">Подтверждение регистрации</h2>
+          
+          <p style="color: #c1d9c1; margin-bottom: 30px; line-height: 1.6;">
+            Здравствуйте, ${firstName}! Для завершения регистрации введите этот 4-значный код на сайте:
+          </p>
+          
+          <div style="text-align: center; margin: 40px 0;">
+            <div style="display: inline-block; background: linear-gradient(135deg, #00ff88, #1de9b6); padding: 20px 40px; border-radius: 12px; letter-spacing: 8px; font-size: 32px; font-weight: bold; color: #0a0f0a;">
+              ${verificationCode}
+            </div>
+          </div>
+          
+          <p style="color: #7a9a7a; font-size: 14px; text-align: center; margin-top: 30px;">
+            Код действителен в течение 30 минут
+          </p>
+          
+          <div style="border-top: 1px solid #2d3d2d; margin: 30px 0; padding-top: 20px; text-align: center;">
+            <p style="color: #6b8b6b; font-size: 12px; margin: 0;">
+              Если вы не регистрировались на BearPlus, просто проигнорируйте это письмо
+            </p>
+          </div>
+        </div>
+      `
+    },
+    en: {
+      subject: 'Email Verification Code - BearPlus',
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #0a0f0a; color: #f0f9f0; padding: 40px; border-radius: 12px;">
+          <div style="text-align: center; margin-bottom: 30px;">
+            <h1 style="color: #00ff88; margin: 0; font-size: 28px;">BearPlus</h1>
+            <p style="color: #a8c8a8; margin: 10px 0 0 0;">Logistics Platform</p>
+          </div>
+          
+          <h2 style="color: #e8f5e8; margin-bottom: 20px;">Email Verification</h2>
+          
+          <p style="color: #c1d9c1; margin-bottom: 30px; line-height: 1.6;">
+            Hello ${firstName}! To complete your registration, enter this 4-digit code on the website:
+          </p>
+          
+          <div style="text-align: center; margin: 40px 0;">
+            <div style="display: inline-block; background: linear-gradient(135deg, #00ff88, #1de9b6); padding: 20px 40px; border-radius: 12px; letter-spacing: 8px; font-size: 32px; font-weight: bold; color: #0a0f0a;">
+              ${verificationCode}
+            </div>
+          </div>
+          
+          <p style="color: #7a9a7a; font-size: 14px; text-align: center; margin-top: 30px;">
+            This code expires in 30 minutes
+          </p>
+          
+          <div style="border-top: 1px solid #2d3d2d; margin: 30px 0; padding-top: 20px; text-align: center;">
+            <p style="color: #6b8b6b; font-size: 12px; margin: 0;">
+              If you didn't register on BearPlus, please ignore this email
+            </p>
+          </div>
+        </div>
+      `
+    },
+    zh: {
+      subject: '邮箱验证码 - BearPlus',
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #0a0f0a; color: #f0f9f0; padding: 40px; border-radius: 12px;">
+          <div style="text-align: center; margin-bottom: 30px;">
+            <h1 style="color: #00ff88; margin: 0; font-size: 28px;">BearPlus</h1>
+            <p style="color: #a8c8a8; margin: 10px 0 0 0;">物流平台</p>
+          </div>
+          
+          <h2 style="color: #e8f5e8; margin-bottom: 20px;">邮箱验证</h2>
+          
+          <p style="color: #c1d9c1; margin-bottom: 30px; line-height: 1.6;">
+            您好 ${firstName}！要完成注册，请在网站上输入此4位数字验证码：
+          </p>
+          
+          <div style="text-align: center; margin: 40px 0;">
+            <div style="display: inline-block; background: linear-gradient(135deg, #00ff88, #1de9b6); padding: 20px 40px; border-radius: 12px; letter-spacing: 8px; font-size: 32px; font-weight: bold; color: #0a0f0a;">
+              ${verificationCode}
+            </div>
+          </div>
+          
+          <p style="color: #7a9a7a; font-size: 14px; text-align: center; margin-top: 30px;">
+            此验证码将在30分钟后过期
+          </p>
+          
+          <div style="border-top: 1px solid #2d3d2d; margin: 30px 0; padding-top: 20px; text-align: center;">
+            <p style="color: #6b8b6b; font-size: 12px; margin: 0;">
+              如果您没有在BearPlus注册，请忽略此邮件
+            </p>
+          </div>
+        </div>
+      `
+    }
+  };
+
+  return templates[language] || templates.ru;
+};

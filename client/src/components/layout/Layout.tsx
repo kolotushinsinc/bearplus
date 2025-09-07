@@ -15,6 +15,7 @@ interface FeedbackFormData {
   phone: string;
   email: string;
   message: string;
+  acceptTerms: boolean;
 }
 
 const Layout: React.FC<LayoutProps> = ({ children }) => {
@@ -29,7 +30,8 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
     name: '',
     phone: '',
     email: '',
-    message: ''
+    message: '',
+    acceptTerms: false
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   
@@ -46,7 +48,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
     }
   };
 
-  const handleFeedbackInputChange = (field: keyof FeedbackFormData, value: string) => {
+  const handleFeedbackInputChange = (field: keyof FeedbackFormData, value: string | boolean) => {
     setFeedbackForm(prev => ({
       ...prev,
       [field]: value
@@ -74,7 +76,8 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
           name: '',
           phone: '',
           email: '',
-          message: ''
+          message: '',
+          acceptTerms: false
         });
       } else {
         alert('Ошибка при отправке сообщения. Пожалуйста, попробуйте позже.');
@@ -93,7 +96,8 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
       name: '',
       phone: '',
       email: '',
-      message: ''
+      message: '',
+      acceptTerms: false
     });
   };
 
@@ -186,51 +190,49 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
       <footer className="w-full px-4 py-8 border-t border-gray-700/50 mt-auto">
         <div className="max-w-7xl mx-auto">
           <div className="flex justify-between items-center">
-            {/* Левая часть - контакты */}
-            <div className="flex items-center space-x-8 text-sm text-white">
-              <div className="flex items-center space-x-2">
-                <img src="/images/telegram_footer.png" alt="Telegram" className="w-5 h-5" />
-                <span>@bearplus</span>
-              </div>
-              <div className="flex items-center space-x-2">
-                <img src="/images/email.png" alt="Email" className="w-5 h-5" />
-                <span>info@bearplus.ru</span>
-              </div>
-              <div className="flex items-center space-x-2">
-                <img src="/images/phone.png" alt="Phone" className="w-5 h-5" />
-                <span>+7 (930) 201-19-93</span>
-              </div>
-              <div className="flex items-center space-x-2">
-                <img src="/images/location_footer.png" alt="Location" className="w-5 h-5" />
-                <span>656011, г. Москва, ул. Октябрьская, 17</span>
-              </div>
-            </div>
+            {/* Пустое место слева */}
+            <div></div>
 
-            {/* Правая часть - логотип */}
-            <Link to="/" className="flex items-center">
-              <img src="/images/logo.png" alt="Bearplus" className="h-10" />
+            {/* По центру - логотип (медведь) и надпись "Bearplus" */}
+            <Link to="/" className="flex items-center space-x-3">
+              <img src="/images/logo.png" alt="Bearplus" className="h-12" />
+              <span className="text-2xl font-bold text-white">Bearplus</span>
             </Link>
-          </div>
 
-          {/* Нижняя часть - кнопка и ссылки */}
-          <div className="mt-6 flex justify-between items-center">
-            <button
-              onClick={() => setShowFeedbackModal(true)}
-              className="bg-bearplus-green hover:bg-green-500 text-black text-sm py-3 px-6 rounded font-medium transition-colors"
-            >
-              Связаться с нами
-            </button>
-            
-            <div className="flex space-x-6 text-xs text-gray-500">
-              <Link to="/offer" className="hover:text-bearplus-green transition-colors">
-                Публичная оферта
-              </Link>
-              <Link to="/privacy" className="hover:text-bearplus-green transition-colors">
-                Политика конфиденциальности
-              </Link>
-              <Link to="/terms" className="hover:text-bearplus-green transition-colors">
-                Условия использования сервиса
-              </Link>
+            {/* Справа - контакты и кнопка */}
+            <div className="flex flex-col items-end space-y-4">
+              {/* Кнопка "Связь с нами" */}
+              <button
+                onClick={() => setShowFeedbackModal(true)}
+                className="bg-bearplus-green hover:bg-green-500 text-black text-sm py-2 px-4 rounded font-medium transition-colors"
+              >
+                Связь с нами
+              </button>
+              
+              {/* Контактная информация */}
+              <div className="flex flex-col items-end space-y-2 text-sm text-white">
+                <div className="flex items-center space-x-2">
+                  <span>info@bearplus.ru</span>
+                  <img src="/images/email.png" alt="Email" className="w-4 h-4" />
+                </div>
+                <div className="flex items-center space-x-2">
+                  <span>+7 (930) 201-19-93</span>
+                  <img src="/images/phone.png" alt="Phone" className="w-4 h-4" />
+                </div>
+                <div className="flex items-center space-x-2">
+                  <span>г. Москва, ул. Октябрьская, 17</span>
+                  <img src="/images/location_footer.png" alt="Location" className="w-4 h-4" />
+                </div>
+                <a
+                  href="https://t.me/bearplus"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center space-x-2 hover:text-bearplus-green transition-colors"
+                >
+                  <span>@bearplus</span>
+                  <img src="/images/telegram_footer.png" alt="ТГ" className="w-4 h-4" />
+                </a>
+              </div>
             </div>
           </div>
         </div>
@@ -241,7 +243,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
         <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4" onClick={closeFeedbackModal}>
           <div className="bg-bearplus-card-dark rounded-xl p-6 w-full max-w-md border border-gray-700" onClick={(e) => e.stopPropagation()}>
             <div className="flex justify-between items-center mb-6">
-              <h3 className="text-xl font-bold text-white">Обратная связь</h3>
+              <h3 className="text-xl font-bold text-white">Связь с нами</h3>
               <button
                 onClick={closeFeedbackModal}
                 className="text-gray-400 hover:text-white transition-colors"
@@ -255,7 +257,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
             <form onSubmit={handleFeedbackSubmit} className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-2">
-                  Имя *
+                  Ваше имя *
                 </label>
                 <input
                   type="text"
@@ -269,7 +271,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
 
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-2">
-                  Телефон *
+                  Номер телефона *
                 </label>
                 <input
                   type="tel"
@@ -308,27 +310,41 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                 />
               </div>
 
-              <div className="flex gap-3 pt-4">
+              {/* Чекбокс с политикой конфиденциальности и условиями пользования */}
+              <div className="flex items-start">
+                <div className="flex items-center h-5">
+                  <input
+                    type="checkbox"
+                    checked={feedbackForm.acceptTerms}
+                    onChange={(e) => handleFeedbackInputChange('acceptTerms', e.target.checked)}
+                    className="w-4 h-4 text-bearplus-green bg-gray-700 border-gray-600 rounded focus:ring-bearplus-green focus:ring-2"
+                    required
+                  />
+                </div>
+                <div className="ml-3 text-sm">
+                  <label className="text-gray-300">
+                    Вы принимаете политику конфиденциальности и условия пользования.{' '}
+                    <Link
+                      to="/offer"
+                      className="text-bearplus-green hover:text-bearplus-green/80 underline"
+                      target="_blank"
+                    >
+                      Оферта
+                    </Link>
+                  </label>
+                </div>
+              </div>
+
+              <div className="flex justify-center pt-4">
                 <button
                   type="submit"
-                  disabled={isSubmitting}
-                  className="btn-primary flex-1"
+                  disabled={isSubmitting || !feedbackForm.acceptTerms}
+                  className="bg-bearplus-green hover:bg-green-500 text-black px-8 py-3 rounded font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {isSubmitting ? 'Отправка...' : 'Отправить'}
                 </button>
-                <button
-                  type="button"
-                  onClick={closeFeedbackModal}
-                  className="btn-secondary flex-1"
-                >
-                  Отмена
-                </button>
               </div>
             </form>
-
-            <p className="text-xs text-gray-500 mt-4 text-center">
-              Нажимая "Отправить", вы соглашаетесь с обработкой персональных данных
-            </p>
           </div>
         </div>
       )}

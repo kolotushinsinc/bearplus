@@ -343,40 +343,36 @@ const UsersPage: React.FC = () => {
       </div>
 
       {/* Статистика */}
-      <Row gutter={16} className="stats-grid">
-        <Col>
-          <Card>
+      <Row gutter={[24, 24]} style={{ marginBottom: '32px' }}>
+        <Col xs={24} sm={12} lg={6}>
+          <Card className="stat-card">
             <Statistic
               title="Всего пользователей"
               value={stats.total}
-              valueStyle={{ color: '#52c41a' }}
             />
           </Card>
         </Col>
-        <Col>
-          <Card>
+        <Col xs={24} sm={12} lg={6}>
+          <Card className="stat-card">
             <Statistic
               title="Клиенты"
               value={stats.clients}
-              valueStyle={{ color: '#1890ff' }}
             />
           </Card>
         </Col>
-        <Col>
-          <Card>
+        <Col xs={24} sm={12} lg={6}>
+          <Card className="stat-card">
             <Statistic
               title="Агенты"
               value={stats.agents}
-              valueStyle={{ color: '#722ed1' }}
             />
           </Card>
         </Col>
-        <Col>
-          <Card>
+        <Col xs={24} sm={12} lg={6}>
+          <Card className="stat-card">
             <Statistic
               title="Активные"
               value={stats.active}
-              valueStyle={{ color: '#52c41a' }}
             />
           </Card>
         </Col>

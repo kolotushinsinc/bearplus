@@ -425,84 +425,84 @@ const AnalyticsPage: React.FC = () => {
       </Card>
 
       {/* Основные метрики */}
-      <Row gutter={16} className="stats-grid">
+      <Row gutter={[24, 24]} style={{ marginBottom: '32px' }}>
         <Col xs={24} sm={12} lg={6}>
-          <Card>
+          <Card className="stat-card">
             <Statistic
               title="Общая выручка"
               value={analyticsData.overview.totalRevenue}
               prefix={<DollarOutlined />}
               suffix="₽"
-              valueStyle={{ color: '#52c41a' }}
             />
-            <div style={{ marginTop: 8, display: 'flex', alignItems: 'center' }}>
+            <div style={{ marginTop: 12, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               {getGrowthIcon(analyticsData.overview.revenueGrowth)}
-              <Text style={{ 
+              <Text style={{
                 color: getGrowthColor(analyticsData.overview.revenueGrowth),
                 marginLeft: 4,
-                fontSize: 12
+                fontSize: 12,
+                fontWeight: '500'
               }}>
-                {Math.abs(analyticsData.overview.revenueGrowth)}% vs предыдущий период
+                {Math.abs(analyticsData.overview.revenueGrowth)}% vs период
               </Text>
             </div>
           </Card>
         </Col>
         <Col xs={24} sm={12} lg={6}>
-          <Card>
+          <Card className="stat-card">
             <Statistic
               title="Всего заказов"
               value={analyticsData.overview.totalOrders}
               prefix={<ShoppingCartOutlined />}
-              valueStyle={{ color: '#1890ff' }}
             />
-            <div style={{ marginTop: 8, display: 'flex', alignItems: 'center' }}>
+            <div style={{ marginTop: 12, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               {getGrowthIcon(analyticsData.overview.ordersGrowth)}
-              <Text style={{ 
+              <Text style={{
                 color: getGrowthColor(analyticsData.overview.ordersGrowth),
                 marginLeft: 4,
-                fontSize: 12
+                fontSize: 12,
+                fontWeight: '500'
               }}>
-                {Math.abs(analyticsData.overview.ordersGrowth)}% vs предыдущий период
+                {Math.abs(analyticsData.overview.ordersGrowth)}% vs период
               </Text>
             </div>
           </Card>
         </Col>
         <Col xs={24} sm={12} lg={6}>
-          <Card>
+          <Card className="stat-card">
             <Statistic
               title="Активные клиенты"
               value={analyticsData.overview.activeClients}
               prefix={<UserOutlined />}
-              valueStyle={{ color: '#722ed1' }}
             />
-            <div style={{ marginTop: 8, display: 'flex', alignItems: 'center' }}>
+            <div style={{ marginTop: 12, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               {getGrowthIcon(analyticsData.overview.clientsGrowth)}
-              <Text style={{ 
+              <Text style={{
                 color: getGrowthColor(analyticsData.overview.clientsGrowth),
                 marginLeft: 4,
-                fontSize: 12
+                fontSize: 12,
+                fontWeight: '500'
               }}>
-                {Math.abs(analyticsData.overview.clientsGrowth)}% vs предыдущий период
+                {Math.abs(analyticsData.overview.clientsGrowth)}% vs период
               </Text>
             </div>
           </Card>
         </Col>
         <Col xs={24} sm={12} lg={6}>
-          <Card>
+          <Card className="stat-card">
             <Statistic
               title="Средний чек"
               value={analyticsData.overview.averageOrderValue}
               suffix="₽"
-              valueStyle={{ color: '#faad14' }}
             />
-            <div style={{ marginTop: 8, display: 'flex', alignItems: 'center' }}>
+            <div style={{ marginTop: 12, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               {getGrowthIcon(analyticsData.overview.aovGrowth)}
-              <Text style={{ 
+              <Text style={{
                 color: getGrowthColor(analyticsData.overview.aovGrowth),
                 marginLeft: 4,
-                fontSize: 12
+                fontSize: 12,
+                fontWeight: '500'
               }}>
-                {Math.abs(analyticsData.overview.aovGrowth)}% vs предыдущий период
+                {Math.abs(analyticsData.overview.aovGrowth)}% vs период
               </Text>
             </div>
           </Card>

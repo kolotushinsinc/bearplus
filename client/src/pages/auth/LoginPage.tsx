@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../../hooks/redux';
 import { loginUser, clearError } from '../../store/slices/authSlice';
 import { LoginFormData } from '../../types';
@@ -9,9 +9,10 @@ const LoginPage: React.FC = () => {
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
   const { isLoading, error, isAuthenticated } = useAppSelector((state) => state.auth);
+  const location = useLocation();
   
   const [formData, setFormData] = useState({
-    login: '',
+    login: location.state?.email || '',
     password: '',
     rememberMe: false
   });
@@ -94,6 +95,11 @@ const LoginPage: React.FC = () => {
       <div className="w-full max-w-md mx-auto">
         <div className="text-center mb-8">
           <h1 className="text-4xl font-bold text-white">Вход</h1>
+          {location.state?.message && (
+            <div className="mt-4 p-3 bg-green-900/50 border border-green-500 rounded-lg">
+              <p className="text-green-400 text-sm">{location.state.message}</p>
+            </div>
+          )}
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">

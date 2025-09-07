@@ -9,7 +9,7 @@ interface Message {
   chatId: string;
   senderId: string;
   senderName: string;
-  senderType: 'client' | 'agent' | 'system';
+  senderType: 'client' | 'agent' | 'admin' | 'system';
   content: string;
   type: 'text' | 'file' | 'image' | 'system';
   fileUrl?: string;

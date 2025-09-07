@@ -46,22 +46,22 @@ const App: React.FC = () => {
   React.useEffect(() => {
     const checkAuth = async () => {
       try {
-        await dispatch(getCurrentUser());
+        // Проверяем аутентификацию только если есть флаг в localStorage
+        const authFlag = localStorage.getItem('isAuthenticated');
+        if (authFlag === 'true') {
+          await dispatch(getCurrentUser());
+        }
       } catch (error) {
         console.error('Auth check failed:', error);
+        // При ошибке очищаем состояние
+        localStorage.removeItem('isAuthenticated');
       } finally {
         setInitialCheckDone(true);
       }
     };
 
-    // If user was previously authenticated, don't show loading screen
-    if (isAuthenticated) {
-      setInitialCheckDone(true);
-      checkAuth(); // Still check in background
-    } else {
-      checkAuth();
-    }
-  }, [dispatch, isAuthenticated]);
+    checkAuth();
+  }, [dispatch]);
 
   // Show loading only if we haven't done initial check and user isn't authenticated
   if (!initialCheckDone && !isAuthenticated) {

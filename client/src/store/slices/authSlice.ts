@@ -144,6 +144,41 @@ const authSlice = createSlice({
     clearError: (state) => {
       state.error = null;
     },
+    forceLogout: (state) => {
+      // Принудительная полная очистка всех данных
+      state.user = null;
+      state.token = null;
+      state.isAuthenticated = false;
+      state.error = null;
+      state.isLoading = false;
+      
+      // Очистка всех возможных ключей localStorage
+      const keysToRemove = [
+        'isAuthenticated', 'token', 'user', 'bearplus_user', 'auth_token',
+        'authState', 'currentUser', 'userData', 'userProfile', 'sessionData'
+      ];
+      
+      keysToRemove.forEach(key => {
+        localStorage.removeItem(key);
+        sessionStorage.removeItem(key);
+      });
+      
+      // Очистка всего localStorage и sessionStorage для надежности
+      try {
+        localStorage.clear();
+        sessionStorage.clear();
+      } catch (e) {
+        console.warn('Error clearing storage:', e);
+      }
+      
+      // Очистка cookies через перезагрузку страницы
+      document.cookie.split(";").forEach((c) => {
+        const eqPos = c.indexOf("=");
+        const name = eqPos > -1 ? c.substr(0, eqPos) : c;
+        document.cookie = name + "=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/";
+        document.cookie = name + "=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/;domain=" + window.location.hostname;
+      });
+    },
     setCredentials: (state, action: PayloadAction<{ user: User; token: string }>) => {
       state.user = action.payload.user;
       state.token = action.payload.token;
@@ -154,7 +189,16 @@ const authSlice = createSlice({
       state.user = null;
       state.token = null;
       state.isAuthenticated = false;
+      state.error = null;
+      state.isLoading = false;
+      // Полная очистка localStorage
       localStorage.removeItem('isAuthenticated');
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      localStorage.removeItem('bearplus_user');
+      localStorage.removeItem('auth_token');
+      // Очистка sessionStorage
+      sessionStorage.clear();
     },
     updateUser: (state, action: PayloadAction<Partial<User>>) => {
       if (state.user) {
@@ -232,7 +276,15 @@ const authSlice = createSlice({
         state.token = null;
         state.isAuthenticated = false;
         state.error = null;
+        state.isLoading = false;
+        // Полная очистка localStorage
         localStorage.removeItem('isAuthenticated');
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        localStorage.removeItem('bearplus_user');
+        localStorage.removeItem('auth_token');
+        // Очистка sessionStorage
+        sessionStorage.clear();
       })
       .addCase(logoutUser.rejected, (state, action) => {
         state.isLoading = false;
@@ -240,7 +292,16 @@ const authSlice = createSlice({
         state.user = null;
         state.token = null;
         state.isAuthenticated = false;
+        state.error = null;
+        state.isLoading = false;
+        // Полная очистка localStorage
         localStorage.removeItem('isAuthenticated');
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        localStorage.removeItem('bearplus_user');
+        localStorage.removeItem('auth_token');
+        // Очистка sessionStorage
+        sessionStorage.clear();
       });
 
     // Forgot password
@@ -298,6 +359,6 @@ const authSlice = createSlice({
   },
 });
 
-export const { clearError, setCredentials, clearCredentials, updateUser } = authSlice.actions;
+export const { clearError, setCredentials, clearCredentials, updateUser, forceLogout } = authSlice.actions;
 
 export default authSlice.reducer;

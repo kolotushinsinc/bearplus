@@ -6,6 +6,7 @@ import {
   getMe,
   logout,
   verifyEmail,
+  verifyEmailCode,
   resendVerificationEmail,
   forgotPassword,
   verifyResetCode,
@@ -45,9 +46,17 @@ router.get('/me', authenticateToken, getMe);
 router.post('/logout', authenticateToken, logout);
 
 // @route   GET /api/auth/verify-email/:token
-// @desc    Подтверждение email
+// @desc    Подтверждение email (старый метод)
 // @access  Public
 router.get('/verify-email/:token', verifyEmail);
+
+// @route   POST /api/auth/verify-email-code
+// @desc    Подтверждение email 4-значным кодом
+// @access  Public
+router.post('/verify-email-code', [
+  body('email').isEmail().withMessage('Please provide a valid email'),
+  body('code').isLength({ min: 4, max: 4 }).withMessage('Code must be exactly 4 digits'),
+], verifyEmailCode);
 
 // @route   POST /api/auth/resend-verification
 // @desc    Повторная отправка письма верификации

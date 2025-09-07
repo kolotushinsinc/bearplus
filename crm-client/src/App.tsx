@@ -45,9 +45,16 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
 
 const App: React.FC = () => {
   const { isAuthenticated, user, isLoading } = useAppSelector((state) => state.auth);
-  
-  // Показываем загрузку пока состояние инициализируется
-  if (isLoading) {
+  const [initialCheckDone, setInitialCheckDone] = React.useState(false);
+
+  // Инициализация приложения
+  React.useEffect(() => {
+    // Просто помечаем, что инициализация завершена
+    setInitialCheckDone(true);
+  }, []);
+
+  // Показываем загрузку только при первой инициализации
+  if (!initialCheckDone) {
     return (
       <div style={{
         display: 'flex',
@@ -56,12 +63,12 @@ const App: React.FC = () => {
         height: '100vh',
         background: '#001529'
       }}>
-        <div style={{ color: '#fff', fontSize: '18px' }}>Загрузка...</div>
+        <div style={{ color: '#fff', fontSize: '18px' }}>Инициализация...</div>
       </div>
     );
   }
 
-  // Проверяем аутентификацию и роль только после загрузки
+  // Проверяем аутентификацию и роль
   const isAdmin = isAuthenticated && user && user.userType === 'admin';
 
   if (!isAdmin) {
@@ -74,63 +81,70 @@ const App: React.FC = () => {
   }
 
   return (
-    <Layout style={{ minHeight: '100vh' }}>
+    <Layout style={{ minHeight: '100vh', background: 'transparent' }}>
       <Sidebar />
-      <Layout>
+      <Layout style={{ marginLeft: 280, background: 'transparent' }}>
         <Header />
-        <Content style={{ padding: '24px', background: '#000' }}>
-          <Routes>
-            <Route path="/" element={<Navigate to="/dashboard" replace />} />
-            <Route 
-              path="/dashboard" 
-              element={
-                <ProtectedRoute>
-                  <DashboardPage />
-                </ProtectedRoute>
-              } 
-            />
-            <Route 
-              path="/users" 
-              element={
-                <ProtectedRoute>
-                  <UsersPage />
-                </ProtectedRoute>
-              } 
-            />
-            <Route 
-              path="/agents" 
-              element={
-                <ProtectedRoute>
-                  <AgentsPage />
-                </ProtectedRoute>
-              } 
-            />
-            <Route 
-              path="/orders" 
-              element={
-                <ProtectedRoute>
-                  <OrdersPage />
-                </ProtectedRoute>
-              } 
-            />
-            <Route 
-              path="/analytics" 
-              element={
-                <ProtectedRoute>
-                  <AnalyticsPage />
-                </ProtectedRoute>
-              } 
-            />
-            <Route 
-              path="/settings" 
-              element={
-                <ProtectedRoute>
-                  <SettingsPage />
-                </ProtectedRoute>
-              } 
-            />
-            <Route path="*" element={<Navigate to="/dashboard" replace />} />
-          </Routes>
+        <Content style={{
+          padding: '32px',
+          background: 'transparent',
+          minHeight: 'calc(100vh - 64px)',
+          overflow: 'auto'
+        }}>
+          <div className="fade-in">
+            <Routes>
+              <Route path="/" element={<Navigate to="/dashboard" replace />} />
+              <Route
+                path="/dashboard"
+                element={
+                  <ProtectedRoute>
+                    <DashboardPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/users"
+                element={
+                  <ProtectedRoute>
+                    <UsersPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/agents"
+                element={
+                  <ProtectedRoute>
+                    <AgentsPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/orders"
+                element={
+                  <ProtectedRoute>
+                    <OrdersPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/analytics"
+                element={
+                  <ProtectedRoute>
+                    <AnalyticsPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/settings"
+                element={
+                  <ProtectedRoute>
+                    <SettingsPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route path="*" element={<Navigate to="/dashboard" replace />} />
+            </Routes>
+          </div>
         </Content>
       </Layout>
     </Layout>

@@ -1,10 +1,12 @@
 import * as React from 'react';
 import { useAppSelector } from '../hooks/redux';
 import ShippingCalculator from '../components/ShippingCalculator';
+import CompanyInfoBlock from '../components/CompanyInfoBlock';
+import FAQBlock from '../components/FAQBlock';
+import VideoInstructionBlock from '../components/VideoInstructionBlock';
 import NewsSection from '../components/NewsSection';
 import VideoSection from '../components/VideoSection';
 import TariffBlocks from '../components/TariffBlocks';
-import CompanyInfoBlock from '../components/CompanyInfoBlock';
 import HelpBlock from '../components/HelpBlock';
 
 const HomePage: React.FC = () => {
@@ -31,46 +33,38 @@ const HomePage: React.FC = () => {
         <ShippingCalculator />
       </section>
 
-      {/* News and Video sections - position depends on authentication */}
-      {!isAuthenticated && (
-        <>
-          <section>
-            <NewsSection isAuthenticated={isAuthenticated} />
-          </section>
-          
-          <section>
-            <VideoSection isAuthenticated={isAuthenticated} />
-          </section>
-        </>
-      )}
-
-      {/* Tariff Blocks */}
-      <section>
-        <TariffBlocks />
-      </section>
-
-      {/* Company Info Block */}
+      {/* Блок "Кто мы" */}
       <section>
         <CompanyInfoBlock />
       </section>
 
-      {/* Help Block */}
+      {/* Блок "Часто задаваемые вопросы" */}
+      <section>
+        <FAQBlock />
+      </section>
+
+      {/* Блок "Видео инструкция" */}
+      <section>
+        <VideoInstructionBlock />
+      </section>
+
+      {/* Дополнительные секции */}
+      <section>
+        <TariffBlocks />
+      </section>
+
       <section>
         <HelpBlock />
       </section>
 
-      {/* News and Video sections for authenticated users - moved lower */}
-      {isAuthenticated && (
-        <>
-          <section>
-            <NewsSection isAuthenticated={isAuthenticated} />
-          </section>
-          
-          <section>
-            <VideoSection isAuthenticated={isAuthenticated} />
-          </section>
-        </>
-      )}
+      {/* News and Video sections */}
+      <section>
+        <NewsSection isAuthenticated={isAuthenticated} />
+      </section>
+      
+      <section>
+        <VideoSection isAuthenticated={isAuthenticated} />
+      </section>
 
       {/* Modern CTA Section */}
       <section className="text-center animate-fade-in">

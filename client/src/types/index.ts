@@ -6,10 +6,13 @@ export interface User {
   firstName: string;
   lastName: string;
   fullName?: string;
-  userType: 'client' | 'agent';
+  userType: 'client' | 'agent' | 'admin';
   companyName?: string;
-  organizationType?: 'llc' | 'jsc' | 'individual' | 'foreign' | 'other';
-  activityType?: 'freight_forwarder' | 'customs_broker' | 'transport_company' | 'logistics' | 'other';
+  organizationType?: 'oao' | 'zao' | 'ooo' | 'ip';
+  activityType?: 'logistics_company' | 'agency';
+  companyDescription?: string;
+  legalAddress?: string;
+  actualAddress?: string;
   phone: string;
   isEmailVerified: boolean;
   isPhoneVerified: boolean;
@@ -27,7 +30,7 @@ export interface LoginFormData {
 }
 
 export interface RegisterFormData {
-  userType: 'client' | 'agent';
+  userType: 'client' | 'agent' | 'admin';
   firstName: string;
   lastName: string;
   username: string;
@@ -36,8 +39,11 @@ export interface RegisterFormData {
   password: string;
   confirmPassword: string;
   companyName?: string;
-  organizationType?: 'llc' | 'jsc' | 'individual' | 'foreign' | 'other';
-  activityType?: 'freight_forwarder' | 'customs_broker' | 'transport_company' | 'logistics' | 'other';
+  organizationType?: 'oao' | 'zao' | 'ooo' | 'ip';
+  activityType?: 'logistics_company' | 'agency';
+  companyDescription?: string;
+  legalAddress?: string;
+  actualAddress?: string;
   language?: 'ru' | 'en' | 'zh';
 }
 
@@ -92,7 +98,7 @@ export interface ProtectedRouteProps {
   children: any;
   requireAuth?: boolean;
   requireEmailVerification?: boolean;
-  allowedUserTypes?: ('client' | 'agent')[];
+  allowedUserTypes?: ('client' | 'agent' | 'admin')[];
 }
 
 // Типы для компонентов форм

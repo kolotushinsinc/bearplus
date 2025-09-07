@@ -6,7 +6,7 @@ const userSchema = new Schema<IUser>({
   // Основная информация
   userType: {
     type: String,
-    enum: ['client', 'agent'],
+    enum: ['client', 'agent', 'admin'],
     required: [true, 'User type is required']
   },
   firstName: {
@@ -67,17 +67,31 @@ const userSchema = new Schema<IUser>({
   // Дополнительная информация для агентов
   organizationType: {
     type: String,
-    enum: ['llc', 'jsc', 'individual', 'foreign', 'other'],
+    enum: ['oao', 'zao', 'ooo', 'ip'], // ОАО, ЗАО, ООО, ИП
     required: function(this: IUser) {
       return this.userType === 'agent';
     }
   },
   activityType: {
     type: String,
-    enum: ['freight_forwarder', 'customs_broker', 'transport_company', 'logistics', 'other'],
+    enum: ['logistics_company', 'agency'], // Логистическая Компания, Агентирование
     required: function(this: IUser) {
       return this.userType === 'agent';
     }
+  },
+  
+  // Дополнительные поля для профиля
+  companyDescription: {
+    type: String,
+    maxlength: [1000, 'Company description cannot exceed 1000 characters']
+  },
+  legalAddress: {
+    type: String,
+    maxlength: [200, 'Legal address cannot exceed 200 characters']
+  },
+  actualAddress: {
+    type: String,
+    maxlength: [200, 'Actual address cannot exceed 200 characters']
   },
   
   // Статус аккаунта

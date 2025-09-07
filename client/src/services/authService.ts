@@ -168,6 +168,42 @@ class AuthService {
     }
   }
 
+  // Подтверждение email 4-значным кодом
+  async verifyEmailCode(email: string, code: string): Promise<ApiResponse> {
+    try {
+      const response: AxiosResponse<ApiResponse> = await api.post('/auth/verify-email-code', { email, code });
+      
+      if (response.data.success) {
+        return response.data;
+      } else {
+        throw new Error(response.data.message || 'Email verification failed');
+      }
+    } catch (error: any) {
+      if (error.response?.data?.message) {
+        throw new Error(error.response.data.message);
+      }
+      throw new Error('Network error occurred');
+    }
+  }
+
+  // Повторная отправка письма верификации
+  async resendVerificationEmail(email: string): Promise<ApiResponse> {
+    try {
+      const response: AxiosResponse<ApiResponse> = await api.post('/auth/resend-verification', { email });
+      
+      if (response.data.success) {
+        return response.data;
+      } else {
+        throw new Error(response.data.message || 'Failed to resend verification email');
+      }
+    } catch (error: any) {
+      if (error.response?.data?.message) {
+        throw new Error(error.response.data.message);
+      }
+      throw new Error('Network error occurred');
+    }
+  }
+
   // Проверка валидности токена
   async validateToken(): Promise<boolean> {
     try {

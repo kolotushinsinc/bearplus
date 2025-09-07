@@ -4,7 +4,7 @@ import { Document } from 'mongoose';
 // Интерфейс пользователя
 export interface IUser extends Document {
   _id: string;
-  userType: 'client' | 'agent';
+  userType: 'client' | 'agent' | 'admin';
   firstName: string;
   lastName: string;
   username: string;
@@ -12,8 +12,11 @@ export interface IUser extends Document {
   phone: string;
   password: string;
   companyName?: string;
-  organizationType?: 'llc' | 'jsc' | 'individual' | 'foreign' | 'other';
-  activityType?: 'freight_forwarder' | 'customs_broker' | 'transport_company' | 'logistics' | 'other';
+  organizationType?: 'oao' | 'zao' | 'ooo' | 'ip';
+  activityType?: 'logistics_company' | 'agency';
+  companyDescription?: string;
+  legalAddress?: string;
+  actualAddress?: string;
   isEmailVerified: boolean;
   isPhoneVerified: boolean;
   isActive: boolean;
@@ -44,7 +47,7 @@ export interface AuthRequest extends Request {
 
 // Типы для регистрации
 export interface RegisterRequestBody {
-  userType: 'client' | 'agent';
+  userType: 'client' | 'agent' | 'admin';
   firstName: string;
   lastName: string;
   username: string;
@@ -53,8 +56,11 @@ export interface RegisterRequestBody {
   password: string;
   confirmPassword: string;
   companyName?: string;
-  organizationType?: 'llc' | 'jsc' | 'individual' | 'foreign' | 'other';
-  activityType?: 'freight_forwarder' | 'customs_broker' | 'transport_company' | 'logistics' | 'other';
+  organizationType?: 'oao' | 'zao' | 'ooo' | 'ip';
+  activityType?: 'logistics_company' | 'agency';
+  companyDescription?: string;
+  legalAddress?: string;
+  actualAddress?: string;
   language?: 'ru' | 'en' | 'zh';
 }
 
@@ -80,8 +86,11 @@ export interface UpdateProfileRequestBody {
   lastName?: string;
   phone?: string;
   companyName?: string;
-  organizationType?: 'llc' | 'jsc' | 'individual' | 'foreign' | 'other';
-  activityType?: 'freight_forwarder' | 'customs_broker' | 'transport_company' | 'logistics' | 'other';
+  organizationType?: 'oao' | 'zao' | 'ooo' | 'ip';
+  activityType?: 'logistics_company' | 'agency';
+  companyDescription?: string;
+  legalAddress?: string;
+  actualAddress?: string;
   language?: 'ru' | 'en' | 'zh';
 }
 
@@ -107,7 +116,7 @@ export interface PaginationQuery {
   page?: string;
   limit?: string;
   search?: string;
-  userType?: 'client' | 'agent';
+  userType?: 'client' | 'agent' | 'admin';
 }
 
 export interface PaginationResult {

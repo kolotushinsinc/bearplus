@@ -1,162 +1,258 @@
+
 import * as React from 'react';
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { useAppDispatch } from '../../hooks/redux';
+import { useAppDispatch, useAppSelector } from '../../hooks/redux';
+import { registerUser, forceLogout } from '../../store/slices/authSlice';
+import authService from '../../services/authService';
 
-interface RegisterForm {
+interface AgentRegisterForm {
   firstName: string;
   lastName: string;
+  username: string;
   email: string;
+  phone: string;
+  organizationType: 'oao' | 'zao' | 'ooo' | 'ip' | '';
+  activityType: 'logistics_company' | 'agency' | '';
+  companyName: string;
   password: string;
   confirmPassword: string;
-  phone: string;
-  company: string;
-  position: string;
-  userType: 'client' | 'agent';
   acceptTerms: boolean;
-  acceptNewsletter: boolean;
+  acceptOffer: boolean;
 }
 
-const RegisterPage: React.FC = () => {
+interface ClientRegisterForm {
+  firstName: string;
+  lastName: string;
+  companyName: string;
+  username: string;
+  email: string;
+  phone: string;
+  password: string;
+  confirmPassword: string;
+  acceptTerms: boolean;
+}
+
+const RegisterPage: React.FC = (): JSX.Element => {
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
-  const [currentStep, setCurrentStep] = useState<'userType' | 'form'>('userType');
-  const [formData, setFormData] = useState<RegisterForm>({
-    firstName: '',
-    lastName: '',
-    email: '',
-    password: '',
-    confirmPassword: '',
-    phone: '',
-    company: '',
-    position: '',
-    userType: 'client',
-    acceptTerms: false,
-    acceptNewsletter: false
-  });
-  const [errors, setErrors] = useState<Record<string, string>>({});
+  const { isAuthenticated } = useAppSelector((state) => state.auth);
+  const [currentStep, setCurrentStep] = useState<'userType' | 'agentForm' | 'clientForm'>('userType');
+  const [userType, setUserType] = useState<'client' | 'agent' | ''>('');
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
-  const validateForm = (): boolean => {
+  // Принудительная полная очистка при входе на страницу регистрации
+  React.useEffect(() => {
+    // Используем forceLogout для агрессивной очистки всех данных
+    dispatch(forceLogout());
+    
+    // Дополнительно очищаем cookies через API logout
+    authService.logout().catch(() => {
+      // Игнорируем ошибки logout
+    });
+  }, [dispatch]);
+
+  const [agentForm, setAgentForm] = useState<AgentRegisterForm>({
+    firstName: '',
+    lastName: '',
+    username: '',
+    email: '',
+    phone: '',
+    organizationType: '',
+    activityType: '',
+    companyName: '',
+    password: '',
+    confirmPassword: '',
+    acceptTerms: false,
+    acceptOffer: false
+  });
+
+  const [clientForm, setClientForm] = useState<ClientRegisterForm>({
+    firstName: '',
+    lastName: '',
+    companyName: '',
+    username: '',
+    email: '',
+    phone: '',
+    password: '',
+    confirmPassword: '',
+    acceptTerms: false
+  });
+
+  const [errors, setErrors] = useState<Record<string, string>>({});
+
+  const validateAgentForm = (): boolean => {
     const newErrors: Record<string, string> = {};
 
-    // Required field validation
-    if (!formData.firstName.trim()) {
-      newErrors.firstName = 'Имя обязательно для заполнения';
-    }
-
-    if (!formData.lastName.trim()) {
-      newErrors.lastName = 'Фамилия обязательна для заполнения';
-    }
-
-    if (!formData.email.trim()) {
+    if (!agentForm.firstName.trim()) newErrors.firstName = 'Имя обязательно для заполнения';
+    if (!agentForm.lastName.trim()) newErrors.lastName = 'Фамилия обязательна для заполнения';
+    if (!agentForm.username.trim()) newErrors.username = 'Логин обязателен для заполнения';
+    if (!agentForm.email.trim()) {
       newErrors.email = 'Email обязателен для заполнения';
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(agentForm.email)) {
       newErrors.email = 'Неверный формат email';
     }
-
-    if (!formData.password) {
-      newErrors.password = 'Пароль обязателен для заполнения';
-    } else if (formData.password.length < 8) {
-      newErrors.password = 'Пароль должен содержать минимум 8 символов';
-    } else if (!/(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/.test(formData.password)) {
-      newErrors.password = 'Пароль должен содержать заглавные и строчные буквы, а также цифры';
-    }
-
-    if (formData.password !== formData.confirmPassword) {
-      newErrors.confirmPassword = 'Пароли не совпадают';
-    }
-
-    if (!formData.phone.trim()) {
+    if (!agentForm.phone.trim()) {
       newErrors.phone = 'Телефон обязателен для заполнения';
-    } else if (!/^[\+]?[1-9][\d]{0,15}$/.test(formData.phone.replace(/[\s\-\(\)]/g, ''))) {
+    } else if (!/^[\+]?[1-9][\d]{0,15}$/.test(agentForm.phone.replace(/[\s\-\(\)]/g, ''))) {
       newErrors.phone = 'Неверный формат телефона';
     }
-
-    if (!formData.company.trim()) {
-      newErrors.company = 'Название компании обязательно для заполнения';
+    if (!agentForm.organizationType) newErrors.organizationType = 'Выберите тип организации';
+    if (!agentForm.activityType) newErrors.activityType = 'Выберите тип деятельности';
+    if (!agentForm.companyName.trim()) newErrors.companyName = 'Название компании обязательно';
+    if (!agentForm.password) {
+      newErrors.password = 'Пароль обязателен для заполнения';
+    } else if (agentForm.password.length < 6) {
+      newErrors.password = 'Пароль должен содержать минимум 6 символов';
     }
-
-    if (!formData.acceptTerms) {
-      newErrors.acceptTerms = 'Необходимо согласиться с условиями использования';
+    if (agentForm.password !== agentForm.confirmPassword) {
+      newErrors.confirmPassword = 'Пароли не совпадают';
     }
+    if (!agentForm.acceptTerms) newErrors.acceptTerms = 'Необходимо принять условия использования';
+    if (!agentForm.acceptOffer) newErrors.acceptOffer = 'Необходимо согласиться с условиями оферты';
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+  const validateClientForm = (): boolean => {
+    const newErrors: Record<string, string> = {};
+
+    if (!clientForm.firstName.trim()) newErrors.firstName = 'Имя обязательно для заполнения';
+    if (!clientForm.lastName.trim()) newErrors.lastName = 'Фамилия обязательна для заполнения';
+    if (!clientForm.username.trim()) newErrors.username = 'Логин обязателен для заполнения';
+    if (!clientForm.email.trim()) {
+      newErrors.email = 'Email обязателен для заполнения';
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(clientForm.email)) {
+      newErrors.email = 'Неверный формат email';
+    }
+    if (!clientForm.phone.trim()) {
+      newErrors.phone = 'Телефон обязателен для заполнения';
+    } else if (!/^[\+]?[1-9][\d]{0,15}$/.test(clientForm.phone.replace(/[\s\-\(\)]/g, ''))) {
+      newErrors.phone = 'Неверный формат телефона';
+    }
+    if (!clientForm.password) {
+      newErrors.password = 'Пароль обязателен для заполнения';
+    } else if (clientForm.password.length < 6) {
+      newErrors.password = 'Пароль должен содержать минимум 6 символов';
+    }
+    if (clientForm.password !== clientForm.confirmPassword) {
+      newErrors.confirmPassword = 'Пароли не совпадают';
+    }
+    if (!clientForm.acceptTerms) newErrors.acceptTerms = 'Необходимо принять условия использования';
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleAgentInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value, type } = e.target;
     const checked = (e.target as HTMLInputElement).checked;
 
-    setFormData(prev => ({
+    setAgentForm(prev => ({
       ...prev,
       [name]: type === 'checkbox' ? checked : value
     }));
 
-    // Clear error when user starts typing
     if (errors[name]) {
-      setErrors(prev => ({
-        ...prev,
-        [name]: ''
-      }));
+      setErrors(prev => ({ ...prev, [name]: '' }));
+    }
+  };
+
+  const handleClientInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    const { name, value, type } = e.target;
+    const checked = (e.target as HTMLInputElement).checked;
+
+    setClientForm(prev => ({
+      ...prev,
+      [name]: type === 'checkbox' ? checked : value
+    }));
+
+    if (errors[name]) {
+      setErrors(prev => ({ ...prev, [name]: '' }));
     }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!validateForm()) {
-      return;
-    }
+    const isValid = userType === 'agent' ? validateAgentForm() : validateClientForm();
+    if (!isValid) return;
 
     setIsLoading(true);
     
     try {
-      // In production, this would be an API call
-      console.log('Registering user:', formData);
+      // Принудительная очистка перед регистрацией
+      dispatch(forceLogout());
       
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      const formData = userType === 'agent' ? {
+        userType: 'agent' as const,
+        firstName: agentForm.firstName,
+        lastName: agentForm.lastName,
+        username: agentForm.username,
+        email: agentForm.email,
+        phone: agentForm.phone,
+        password: agentForm.password,
+        confirmPassword: agentForm.confirmPassword,
+        companyName: agentForm.companyName,
+        organizationType: agentForm.organizationType as 'oao' | 'zao' | 'ooo' | 'ip',
+        activityType: agentForm.activityType as 'logistics_company' | 'agency',
+        language: 'ru' as const
+      } : {
+        userType: 'client' as const,
+        firstName: clientForm.firstName,
+        lastName: clientForm.lastName,
+        username: clientForm.username,
+        email: clientForm.email,
+        phone: clientForm.phone,
+        password: clientForm.password,
+        confirmPassword: clientForm.confirmPassword,
+        companyName: clientForm.companyName || undefined,
+        language: 'ru' as const
+      };
+
+      // Используем Redux action для регистрации
+      const result = await dispatch(registerUser(formData));
       
-      // Simulate successful registration
-      // In real app, dispatch register action
-      // dispatch(register(formData));
+      if (registerUser.fulfilled.match(result)) {
+        // Успешная регистрация - перенаправляем на верификацию
+        navigate('/auth/verify-email', {
+          state: { email: userType === 'agent' ? agentForm.email : clientForm.email }
+        });
+      } else {
+        // Ошибка регистрации
+        const errorMessage = result.payload as string || 'Ошибка при регистрации. Попробуйте снова.';
+        setErrors({ email: errorMessage });
+      }
       
-      // Redirect to email verification
-      navigate('/auth/verify-email', { 
-        state: { email: formData.email }
-      });
-      
-    } catch (error) {
+    } catch (error: any) {
       console.error('Registration error:', error);
-      setErrors({ email: 'Ошибка при регистрации. Попробуйте снова.' });
+      setErrors({ email: error.message || 'Ошибка при регистрации. Попробуйте снова.' });
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handleUserTypeSelect = (userType: 'client' | 'agent') => {
-    setFormData(prev => ({ ...prev, userType }));
-    setCurrentStep('form');
+  const handleUserTypeSelect = (selectedType: 'client' | 'agent') => {
+    setUserType(selectedType);
+    setCurrentStep(selectedType === 'agent' ? 'agentForm' : 'clientForm');
   };
 
   const handleBackToUserType = () => {
     setCurrentStep('userType');
+    setErrors({});
   };
 
-  // User Type Selection Step
   const renderUserTypeSelection = () => (
     <div className="min-h-screen bg-bearplus-bg flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-4xl w-full space-y-8">
-        {/* Header */}
         <div className="text-center">
           <Link to="/" className="inline-block">
             <img
               className="h-12 w-auto"
-              src="/logo.png"
+              src="/images/logo.png"
               alt="BearPlus"
             />
           </Link>
@@ -168,16 +264,10 @@ const RegisterPage: React.FC = () => {
           </p>
         </div>
 
-        {/* User Type Cards */}
         <div className="mt-12 grid grid-cols-1 md:grid-cols-2 gap-8 max-w-2xl mx-auto">
-          {/* Agent Card */}
           <div
             onClick={() => handleUserTypeSelect('agent')}
-            className={`relative cursor-pointer group transform transition-all duration-300 hover:scale-105 ${
-              formData.userType === 'agent'
-                ? 'ring-2 ring-bearplus-green'
-                : 'hover:ring-2 hover:ring-gray-500'
-            }`}
+            className="relative cursor-pointer group transform transition-all duration-300 hover:scale-105 hover:ring-2 hover:ring-bearplus-green"
           >
             <div className="bg-gray-800 border border-gray-700 rounded-2xl p-8 text-center hover:bg-gray-750 transition-colors">
               <div className="text-6xl mb-4">👨‍💼</div>
@@ -188,14 +278,9 @@ const RegisterPage: React.FC = () => {
             </div>
           </div>
 
-          {/* Client Card */}
           <div
             onClick={() => handleUserTypeSelect('client')}
-            className={`relative cursor-pointer group transform transition-all duration-300 hover:scale-105 ${
-              formData.userType === 'client'
-                ? 'ring-2 ring-bearplus-green'
-                : 'hover:ring-2 hover:ring-gray-500'
-            }`}
+            className="relative cursor-pointer group transform transition-all duration-300 hover:scale-105 hover:ring-2 hover:ring-bearplus-green"
           >
             <div className="bg-gray-800 border border-gray-700 rounded-2xl p-8 text-center hover:bg-gray-750 transition-colors">
               <div className="text-6xl mb-4">🏢</div>
@@ -207,7 +292,6 @@ const RegisterPage: React.FC = () => {
           </div>
         </div>
 
-        {/* Back to Login */}
         <div className="text-center">
           <p className="text-sm text-gray-400">
             Уже есть аккаунт?{' '}
@@ -223,28 +307,20 @@ const RegisterPage: React.FC = () => {
     </div>
   );
 
-  // Registration Form Step
-  const renderRegistrationForm = () => (
+  const renderAgentForm = () => (
     <div className="min-h-screen bg-bearplus-bg flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-md w-full space-y-8">
-        {/* Header */}
         <div className="text-center">
           <Link to="/" className="inline-block">
             <img
               className="h-12 w-auto"
-              src="/logo.png"
+              src="/images/logo.png"
               alt="BearPlus"
             />
           </Link>
           <h2 className="mt-6 text-3xl font-bold text-white">
-            Создать аккаунт
+            Регистрация агента
           </h2>
-          <p className="mt-2 text-sm text-gray-400">
-            Регистрация как{' '}
-            <span className="text-bearplus-green font-medium">
-              {formData.userType === 'client' ? 'Клиент' : 'Агент'}
-            </span>
-          </p>
           <button
             type="button"
             onClick={handleBackToUserType}
@@ -254,22 +330,16 @@ const RegisterPage: React.FC = () => {
           </button>
         </div>
 
-        {/* Registration Form */}
         <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
           <div className="space-y-4">
-            {/* Name Fields */}
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label htmlFor="firstName" className="sr-only">
-                  Имя
-                </label>
                 <input
-                  id="firstName"
                   name="firstName"
                   type="text"
                   required
-                  value={formData.firstName}
-                  onChange={handleInputChange}
+                  value={agentForm.firstName}
+                  onChange={handleAgentInputChange}
                   className={`input-field ${errors.firstName ? 'border-red-500' : ''}`}
                   placeholder="Имя"
                 />
@@ -277,18 +347,13 @@ const RegisterPage: React.FC = () => {
                   <p className="mt-1 text-sm text-red-500">{errors.firstName}</p>
                 )}
               </div>
-
               <div>
-                <label htmlFor="lastName" className="sr-only">
-                  Фамилия
-                </label>
                 <input
-                  id="lastName"
                   name="lastName"
                   type="text"
                   required
-                  value={formData.lastName}
-                  onChange={handleInputChange}
+                  value={agentForm.lastName}
+                  onChange={handleAgentInputChange}
                   className={`input-field ${errors.lastName ? 'border-red-500' : ''}`}
                   placeholder="Фамилия"
                 />
@@ -298,41 +363,110 @@ const RegisterPage: React.FC = () => {
               </div>
             </div>
 
-            {/* Email */}
             <div>
-              <label htmlFor="email" className="sr-only">
-                Email
-              </label>
               <input
-                id="email"
+                name="username"
+                type="text"
+                required
+                value={agentForm.username}
+                onChange={handleAgentInputChange}
+                className={`input-field ${errors.username ? 'border-red-500' : ''}`}
+                placeholder="Логин"
+              />
+              {errors.username && (
+                <p className="mt-1 text-sm text-red-500">{errors.username}</p>
+              )}
+            </div>
+
+            <div>
+              <input
                 name="email"
                 type="email"
-                autoComplete="email"
                 required
-                value={formData.email}
-                onChange={handleInputChange}
+                value={agentForm.email}
+                onChange={handleAgentInputChange}
                 className={`input-field ${errors.email ? 'border-red-500' : ''}`}
-                placeholder="Email адрес"
+                placeholder="Email"
               />
               {errors.email && (
                 <p className="mt-1 text-sm text-red-500">{errors.email}</p>
               )}
             </div>
 
-            {/* Password Fields */}
+            <div>
+              <input
+                name="phone"
+                type="tel"
+                required
+                value={agentForm.phone}
+                onChange={handleAgentInputChange}
+                className={`input-field ${errors.phone ? 'border-red-500' : ''}`}
+                placeholder="Номер телефона"
+              />
+              {errors.phone && (
+                <p className="mt-1 text-sm text-red-500">{errors.phone}</p>
+              )}
+            </div>
+
+            <div>
+              <select
+                name="organizationType"
+                required
+                value={agentForm.organizationType}
+                onChange={handleAgentInputChange}
+                className={`input-field ${errors.organizationType ? 'border-red-500' : ''}`}
+              >
+                <option value="">Выберите тип организации</option>
+                <option value="oao">ОАО</option>
+                <option value="zao">ЗАО</option>
+                <option value="ooo">ООО</option>
+                <option value="ip">ИП</option>
+              </select>
+              {errors.organizationType && (
+                <p className="mt-1 text-sm text-red-500">{errors.organizationType}</p>
+              )}
+            </div>
+
+            <div>
+              <select
+                name="activityType"
+                required
+                value={agentForm.activityType}
+                onChange={handleAgentInputChange}
+                className={`input-field ${errors.activityType ? 'border-red-500' : ''}`}
+              >
+                <option value="">Выберите тип деятельности</option>
+                <option value="logistics_company">Логистическая Компания</option>
+                <option value="agency">Агентирование</option>
+              </select>
+              {errors.activityType && (
+                <p className="mt-1 text-sm text-red-500">{errors.activityType}</p>
+              )}
+            </div>
+
+            <div>
+              <input
+                name="companyName"
+                type="text"
+                required
+                value={agentForm.companyName}
+                onChange={handleAgentInputChange}
+                className={`input-field ${errors.companyName ? 'border-red-500' : ''}`}
+                placeholder="Компания (название)"
+              />
+              {errors.companyName && (
+                <p className="mt-1 text-sm text-red-500">{errors.companyName}</p>
+              )}
+            </div>
+
             <div className="space-y-4">
               <div className="relative">
-                <label htmlFor="password" className="sr-only">
-                  Пароль
-                </label>
                 <input
-                  id="password"
                   name="password"
                   type={showPassword ? 'text' : 'password'}
-                  autoComplete="new-password"
                   required
-                  value={formData.password}
-                  onChange={handleInputChange}
+                  value={agentForm.password}
+                  onChange={handleAgentInputChange}
                   className={`input-field pr-10 ${errors.password ? 'border-red-500' : ''}`}
                   placeholder="Пароль"
                 />
@@ -351,19 +485,14 @@ const RegisterPage: React.FC = () => {
               </div>
 
               <div className="relative">
-                <label htmlFor="confirmPassword" className="sr-only">
-                  Подтвердите пароль
-                </label>
                 <input
-                  id="confirmPassword"
                   name="confirmPassword"
                   type={showConfirmPassword ? 'text' : 'password'}
-                  autoComplete="new-password"
                   required
-                  value={formData.confirmPassword}
-                  onChange={handleInputChange}
+                  value={agentForm.confirmPassword}
+                  onChange={handleAgentInputChange}
                   className={`input-field pr-10 ${errors.confirmPassword ? 'border-red-500' : ''}`}
-                  placeholder="Подтвердите пароль"
+                  placeholder="Подтверждение пароля"
                 />
                 <button
                   type="button"
@@ -380,89 +509,22 @@ const RegisterPage: React.FC = () => {
               </div>
             </div>
 
-            {/* Phone */}
-            <div>
-              <label htmlFor="phone" className="sr-only">
-                Телефон
-              </label>
-              <input
-                id="phone"
-                name="phone"
-                type="tel"
-                autoComplete="tel"
-                required
-                value={formData.phone}
-                onChange={handleInputChange}
-                className={`input-field ${errors.phone ? 'border-red-500' : ''}`}
-                placeholder="Телефон"
-              />
-              {errors.phone && (
-                <p className="mt-1 text-sm text-red-500">{errors.phone}</p>
-              )}
-            </div>
-
-            {/* Company and Position */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label htmlFor="company" className="sr-only">
-                  Компания
-                </label>
-                <input
-                  id="company"
-                  name="company"
-                  type="text"
-                  required
-                  value={formData.company}
-                  onChange={handleInputChange}
-                  className={`input-field ${errors.company ? 'border-red-500' : ''}`}
-                  placeholder="Название компании"
-                />
-                {errors.company && (
-                  <p className="mt-1 text-sm text-red-500">{errors.company}</p>
-                )}
-              </div>
-
-              <div>
-                <label htmlFor="position" className="sr-only">
-                  Должность
-                </label>
-                <input
-                  id="position"
-                  name="position"
-                  type="text"
-                  value={formData.position}
-                  onChange={handleInputChange}
-                  className="input-field"
-                  placeholder="Должность"
-                />
-              </div>
-            </div>
-
-            {/* Checkboxes */}
             <div className="space-y-4">
               <div className="flex items-start">
                 <div className="flex items-center h-5">
                   <input
-                    id="acceptTerms"
                     name="acceptTerms"
                     type="checkbox"
-                    checked={formData.acceptTerms}
-                    onChange={handleInputChange}
+                    checked={agentForm.acceptTerms}
+                    onChange={handleAgentInputChange}
                     className={`w-4 h-4 text-bearplus-green bg-gray-700 border-gray-600 rounded focus:ring-bearplus-green focus:ring-2 ${
                       errors.acceptTerms ? 'border-red-500' : ''
                     }`}
                   />
                 </div>
                 <div className="ml-3 text-sm">
-                  <label htmlFor="acceptTerms" className="text-gray-300">
-                    Я согласен с{' '}
-                    <Link to="/terms" className="text-bearplus-green hover:text-bearplus-green/80">
-                      условиями использования
-                    </Link>{' '}
-                    и{' '}
-                    <Link to="/privacy" className="text-bearplus-green hover:text-bearplus-green/80">
-                      политикой конфиденциальности
-                    </Link>
+                  <label className="text-gray-300">
+                    Вы принимаете условия использования платформы
                   </label>
                   {errors.acceptTerms && (
                     <p className="mt-1 text-sm text-red-500">{errors.acceptTerms}</p>
@@ -473,24 +535,30 @@ const RegisterPage: React.FC = () => {
               <div className="flex items-start">
                 <div className="flex items-center h-5">
                   <input
-                    id="acceptNewsletter"
-                    name="acceptNewsletter"
+                    name="acceptOffer"
                     type="checkbox"
-                    checked={formData.acceptNewsletter}
-                    onChange={handleInputChange}
-                    className="w-4 h-4 text-bearplus-green bg-gray-700 border-gray-600 rounded focus:ring-bearplus-green focus:ring-2"
+                    checked={agentForm.acceptOffer}
+                    onChange={handleAgentInputChange}
+                    className={`w-4 h-4 text-bearplus-green bg-gray-700 border-gray-600 rounded focus:ring-bearplus-green focus:ring-2 ${
+                      errors.acceptOffer ? 'border-red-500' : ''
+                    }`}
                   />
                 </div>
                 <div className="ml-3 text-sm">
-                  <label htmlFor="acceptNewsletter" className="text-gray-300">
-                    Подписаться на новости и специальные предложения
+                  <label className="text-gray-300">
+                    Вы соглашаетесь с условиями нашей{' '}
+                    <Link to="/offer" className="text-bearplus-green hover:text-bearplus-green/80 underline">
+                      оферты
+                    </Link>
                   </label>
+                  {errors.acceptOffer && (
+                    <p className="mt-1 text-sm text-red-500">{errors.acceptOffer}</p>
+                  )}
                 </div>
               </div>
             </div>
           </div>
 
-          {/* Submit Button */}
           <div>
             <button
               type="submit"
@@ -500,26 +568,234 @@ const RegisterPage: React.FC = () => {
               {isLoading ? (
                 <div className="flex items-center">
                   <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                  Создание аккаунта...
+                  Регистрация...
                 </div>
               ) : (
-                'Создать аккаунт'
+                'Зарегистрироваться'
               )}
             </button>
-          </div>
-
-          {/* Additional Info */}
-          <div className="text-center text-sm text-gray-400">
-            <p>
-              После регистрации на указанный email будет отправлено письмо для подтверждения аккаунта
-            </p>
           </div>
         </form>
       </div>
     </div>
   );
 
-  return currentStep === 'userType' ? renderUserTypeSelection() : renderRegistrationForm();
+  const renderClientForm = () => (
+    <div className="min-h-screen bg-bearplus-bg flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-md w-full space-y-8">
+        <div className="text-center">
+          <Link to="/" className="inline-block">
+            <img
+              className="h-12 w-auto"
+              src="/images/logo.png"
+              alt="BearPlus"
+            />
+          </Link>
+          <h2 className="mt-6 text-3xl font-bold text-white">
+            Регистрация клиента
+          </h2>
+          <button
+            type="button"
+            onClick={handleBackToUserType}
+            className="mt-2 text-sm text-gray-400 hover:text-bearplus-green underline"
+          >
+            Изменить тип аккаунта
+          </button>
+        </div>
+
+        <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <input
+                  name="firstName"
+                  type="text"
+                  required
+                  value={clientForm.firstName}
+                  onChange={handleClientInputChange}
+                  className={`input-field ${errors.firstName ? 'border-red-500' : ''}`}
+                  placeholder="Имя"
+                />
+                {errors.firstName && (
+                  <p className="mt-1 text-sm text-red-500">{errors.firstName}</p>
+                )}
+              </div>
+              <div>
+                <input
+                  name="lastName"
+                  type="text"
+                  required
+                  value={clientForm.lastName}
+                  onChange={handleClientInputChange}
+                  className={`input-field ${errors.lastName ? 'border-red-500' : ''}`}
+                  placeholder="Фамилия"
+                />
+                {errors.lastName && (
+                  <p className="mt-1 text-sm text-red-500">{errors.lastName}</p>
+                )}
+              </div>
+            </div>
+
+            <div>
+              <input
+                name="companyName"
+                type="text"
+                value={clientForm.companyName}
+                onChange={handleClientInputChange}
+                className="input-field"
+                placeholder="Наименование компании (необязательно)"
+              />
+            </div>
+
+            <div>
+              <input
+                name="username"
+                type="text"
+                required
+                value={clientForm.username}
+                onChange={handleClientInputChange}
+                className={`input-field ${errors.username ? 'border-red-500' : ''}`}
+                placeholder="Логин"
+              />
+              {errors.username && (
+                <p className="mt-1 text-sm text-red-500">{errors.username}</p>
+              )}
+            </div>
+
+            <div>
+              <input
+                name="email"
+                type="email"
+                required
+                value={clientForm.email}
+                onChange={handleClientInputChange}
+                className={`input-field ${errors.email ? 'border-red-500' : ''}`}
+                placeholder="Email"
+              />
+              {errors.email && (
+                <p className="mt-1 text-sm text-red-500">{errors.email}</p>
+              )}
+            </div>
+
+            <div>
+              <input
+                name="phone"
+                type="tel"
+                required
+                value={clientForm.phone}
+                onChange={handleClientInputChange}
+                className={`input-field ${errors.phone ? 'border-red-500' : ''}`}
+                placeholder="Номер телефона (коды стран)"
+              />
+              {errors.phone && (
+                <p className="mt-1 text-sm text-red-500">{errors.phone}</p>
+              )}
+            </div>
+
+            <div className="space-y-4">
+              <div className="relative">
+                <input
+                  name="password"
+                  type={showPassword ? 'text' : 'password'}
+                  required
+                  value={clientForm.password}
+                  onChange={handleClientInputChange}
+                  className={`input-field pr-10 ${errors.password ? 'border-red-500' : ''}`}
+                  placeholder="Пароль"
+                />
+                <button
+                  type="button"
+                  className="absolute inset-y-0 right-0 pr-3 flex items-center"
+                  onClick={() => setShowPassword(!showPassword)}
+                >
+                  <span className="text-gray-400 hover:text-gray-300">
+                    {showPassword ? '🙈' : '👁️'}
+                  </span>
+                </button>
+                {errors.password && (
+                  <p className="mt-1 text-sm text-red-500">{errors.password}</p>
+                )}
+              </div>
+
+              <div className="relative">
+                <input
+                  name="confirmPassword"
+                  type={showConfirmPassword ? 'text' : 'password'}
+                  required
+                  value={clientForm.confirmPassword}
+                  onChange={handleClientInputChange}
+                  className={`input-field pr-10 ${errors.confirmPassword ? 'border-red-500' : ''}`}
+                  placeholder="Подтверждение пароля"
+                />
+                <button
+                  type="button"
+                  className="absolute inset-y-0 right-0 pr-3 flex items-center"
+                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                >
+                  <span className="text-gray-400 hover:text-gray-300">
+                    {showConfirmPassword ? '🙈' : '👁️'}
+                  </span>
+                </button>
+                {errors.confirmPassword && (
+                  <p className="mt-1 text-sm text-red-500">{errors.confirmPassword}</p>
+                )}
+              </div>
+            </div>
+
+            <div className="flex items-start">
+              <div className="flex items-center h-5">
+                <input
+                  name="acceptTerms"
+                  type="checkbox"
+                  checked={clientForm.acceptTerms}
+                  onChange={handleClientInputChange}
+                  className={`w-4 h-4 text-bearplus-green bg-gray-700 border-gray-600 rounded focus:ring-bearplus-green focus:ring-2 ${
+                    errors.acceptTerms ? 'border-red-500' : ''
+                  }`}
+                />
+              </div>
+              <div className="ml-3 text-sm">
+                <label className="text-gray-300">
+                  Вы принимаете политику конфиденциальности и условия пользования.{' '}
+                  <Link to="/offer" className="text-bearplus-green hover:text-bearplus-green/80 underline">
+                    Оферта
+                  </Link>
+                </label>
+                {errors.acceptTerms && (
+                  <p className="mt-1 text-sm text-red-500">{errors.acceptTerms}</p>
+                )}
+              </div>
+            </div>
+          </div>
+
+          <div>
+            <button
+              type="submit"
+              disabled={isLoading}
+              className="group relative w-full flex justify-center py-3 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-bearplus-green hover:bg-bearplus-green/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-bearplus-green disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {isLoading ? (
+                <div className="flex items-center">
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                  Регистрация...
+                </div>
+              ) : (
+                'Зарегистрироваться'
+              )}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+
+  if (currentStep === 'userType') {
+    return renderUserTypeSelection();
+  } else if (currentStep === 'agentForm') {
+    return renderAgentForm();
+  } else {
+    return renderClientForm();
+  }
 };
 
 export default RegisterPage;

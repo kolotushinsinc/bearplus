@@ -519,43 +519,39 @@ const OrdersPage: React.FC = () => {
       </div>
 
       {/* Статистика */}
-      <Row gutter={16} className="stats-grid">
+      <Row gutter={[24, 24]} style={{ marginBottom: '32px' }}>
         <Col xs={24} sm={12} lg={6}>
-          <Card>
+          <Card className="stat-card">
             <Statistic
               title="Всего заказов"
               value={stats.total}
               prefix={<ShoppingCartOutlined />}
-              valueStyle={{ color: '#52c41a' }}
             />
           </Card>
         </Col>
         <Col xs={24} sm={12} lg={6}>
-          <Card>
+          <Card className="stat-card">
             <Statistic
               title="Ожидают"
               value={stats.pending}
               prefix={<ClockCircleOutlined />}
-              valueStyle={{ color: '#faad14' }}
             />
           </Card>
         </Col>
         <Col xs={24} sm={12} lg={6}>
-          <Card>
+          <Card className="stat-card">
             <Statistic
               title="В работе"
               value={stats.inProgress}
-              valueStyle={{ color: '#1890ff' }}
             />
           </Card>
         </Col>
         <Col xs={24} sm={12} lg={6}>
-          <Card>
+          <Card className="stat-card">
             <Statistic
               title="Доставлено"
               value={stats.delivered}
               prefix={<CheckOutlined />}
-              valueStyle={{ color: '#52c41a' }}
             />
           </Card>
         </Col>

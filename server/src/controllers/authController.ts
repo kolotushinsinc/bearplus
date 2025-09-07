@@ -3,7 +3,7 @@ import crypto from 'crypto';
 import { Response, NextFunction } from 'express';
 import { validationResult } from 'express-validator';
 import User from '../models/User';
-import { sendEmail, getVerificationEmailTemplate, generatePasswordResetCodeEmail } from '../utils/email';
+import { sendEmail, getVerificationEmailTemplate, generatePasswordResetCodeEmail, generateEmailVerificationCodeTemplate } from '../utils/email';
 import { 
   AuthRequest, 
   RegisterRequestBody, 
@@ -119,27 +119,27 @@ export const register = async (req: AuthRequest, res: Response, next: NextFuncti
     if (userType === 'agent') {
       if (organizationType) userData.organizationType = organizationType;
       if (activityType) userData.activityType = activityType;
+      // Дополнительные поля из body (если есть)
+      if (req.body.companyDescription) userData.companyDescription = req.body.companyDescription;
+      if (req.body.legalAddress) userData.legalAddress = req.body.legalAddress;
+      if (req.body.actualAddress) userData.actualAddress = req.body.actualAddress;
     }
 
     const user = await User.create(userData);
 
-    // Генерация токена для подтверждения email
-    const emailToken = crypto.randomBytes(20).toString('hex');
+    // Генерация 4-значного кода для подтверждения email
+    const emailVerificationCode = Math.floor(1000 + Math.random() * 9000).toString();
     user.emailVerificationToken = crypto
       .createHash('sha256')
-      .update(emailToken)
+      .update(emailVerificationCode)
       .digest('hex');
-    user.emailVerificationExpires = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 часа
+    user.emailVerificationExpires = new Date(Date.now() + 30 * 60 * 1000); // 30 минут
 
     await user.save({ validateBeforeSave: false });
 
-    // Отправка email подтверждения
+    // Отправка email подтверждения с кодом
     try {
-      const verifyUrl = `${req.protocol}://${req.get(
-        'host'
-      )}/api/auth/verify-email/${emailToken}`;
-
-      const emailTemplate = getVerificationEmailTemplate(verifyUrl, user.firstName, user.language);
+      const emailTemplate = generateEmailVerificationCodeTemplate(emailVerificationCode, user.firstName, user.language);
 
       await sendEmail({
         email: user.email,
@@ -149,7 +149,7 @@ export const register = async (req: AuthRequest, res: Response, next: NextFuncti
 
       res.status(201).json({
         success: true,
-        message: 'User registered successfully. Please check your email to verify your account.',
+        message: 'Пользователь зарегистрирован. Проверьте email для получения кода подтверждения.',
         user: {
           id: user._id,
           username: user.username,
@@ -166,7 +166,7 @@ export const register = async (req: AuthRequest, res: Response, next: NextFuncti
       // Если email не отправился, все равно создаем пользователя
       res.status(201).json({
         success: true,
-        message: 'User registered successfully. Email verification will be sent shortly.',
+        message: 'Пользователь зарегистрирован. Код подтверждения будет отправлен на email.',
         user: {
           id: user._id,
           username: user.username,
@@ -271,6 +271,9 @@ export const getMe = async (req: AuthRequest, res: Response, next: NextFunction)
         companyName: user.companyName,
         organizationType: user.organizationType,
         activityType: user.activityType,
+        companyDescription: user.companyDescription,
+        legalAddress: user.legalAddress,
+        actualAddress: user.actualAddress,
         phone: user.phone,
         isEmailVerified: user.isEmailVerified,
         isPhoneVerified: user.isPhoneVerified,
@@ -289,9 +292,11 @@ export const getMe = async (req: AuthRequest, res: Response, next: NextFunction)
 // @route   POST /api/auth/logout
 // @access  Private
 export const logout = (req: AuthRequest, res: Response): void => {
-  res.cookie('token', 'none', {
-    expires: new Date(Date.now() + 10 * 1000),
+  // Полная очистка cookie
+  res.clearCookie('token', {
     httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'strict'
   });
 
   res.status(200).json({
@@ -300,7 +305,58 @@ export const logout = (req: AuthRequest, res: Response): void => {
   });
 };
 
-// @desc    Подтверждение email
+// @desc    Подтверждение email с 4-значным кодом
+// @route   POST /api/auth/verify-email-code
+// @access  Public
+export const verifyEmailCode = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const { email, code } = req.body;
+
+    if (!email || !code) {
+      res.status(400).json({
+        success: false,
+        message: 'Email и код обязательны',
+      });
+      return;
+    }
+
+    // Хеширование кода
+    const emailVerificationToken = crypto
+      .createHash('sha256')
+      .update(code)
+      .digest('hex');
+
+    const user = await User.findOne({
+      email,
+      emailVerificationToken,
+      emailVerificationExpires: { $gt: new Date() },
+    });
+
+    if (!user) {
+      res.status(400).json({
+        success: false,
+        message: 'Неверный или истекший код подтверждения',
+      });
+      return;
+    }
+
+    // Активация пользователя
+    user.isEmailVerified = true;
+    user.emailVerificationToken = undefined;
+    user.emailVerificationExpires = undefined;
+
+    await user.save({ validateBeforeSave: false });
+
+    res.status(200).json({
+      success: true,
+      message: 'Email подтвержден успешно',
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// @desc    Подтверждение email (старый метод для обратной совместимости)
 // @route   GET /api/auth/verify-email/:token
 // @access  Public
 export const verifyEmail = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
@@ -574,23 +630,19 @@ export const resendVerificationEmail = async (req: AuthRequest, res: Response, n
       return;
     }
 
-    // Генерация нового токена для подтверждения email
-    const emailToken = crypto.randomBytes(20).toString('hex');
+    // Генерация нового 4-значного кода для подтверждения email
+    const emailVerificationCode = Math.floor(1000 + Math.random() * 9000).toString();
     user.emailVerificationToken = crypto
       .createHash('sha256')
-      .update(emailToken)
+      .update(emailVerificationCode)
       .digest('hex');
-    user.emailVerificationExpires = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 часа
+    user.emailVerificationExpires = new Date(Date.now() + 30 * 60 * 1000); // 30 минут
 
     await user.save({ validateBeforeSave: false });
 
-    // Отправка email подтверждения
+    // Отправка email подтверждения с кодом
     try {
-      const verifyUrl = `${req.protocol}://${req.get(
-        'host'
-      )}/api/auth/verify-email/${emailToken}`;
-
-      const emailTemplate = getVerificationEmailTemplate(verifyUrl, user.firstName, user.language);
+      const emailTemplate = generateEmailVerificationCodeTemplate(emailVerificationCode, user.firstName, user.language);
 
       await sendEmail({
         email: user.email,
@@ -600,7 +652,7 @@ export const resendVerificationEmail = async (req: AuthRequest, res: Response, n
 
       res.status(200).json({
         success: true,
-        message: 'Verification email sent successfully',
+        message: 'Код подтверждения отправлен на email',
       });
     } catch (err) {
       console.error('Email sending failed:', err);
