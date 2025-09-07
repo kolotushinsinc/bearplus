@@ -38,8 +38,8 @@ BearPlus is a comprehensive logistics management platform designed for internati
 3. **Access the applications:**
    - Main Client: http://localhost:5173
    - CRM Client: http://localhost:3000  
-   - API Server: http://localhost:5005
-   - API Health: http://localhost:5005/api/health
+   - API Server: https://api.bearplus.ru/api
+   - API Health: https://api.bearplus.ru/api/api/health
 
 4. **Stop the application:**
    ```bash
@@ -110,14 +110,14 @@ EMAIL_FROM=noreply@bearplus.com
 
 #### Client (.env)
 ```env
-VITE_API_URL=http://localhost:5005/api
+VITE_API_URL=https://api.bearplus.ru/api/api
 VITE_APP_NAME=BearPlus
 VITE_APP_VERSION=1.0.0
 ```
 
 #### CRM Client (.env)
 ```env
-REACT_APP_API_URL=http://localhost:5005/api
+REACT_APP_API_URL=https://api.bearplus.ru/api/api
 REACT_APP_NAME=BearPlus CRM
 ```
 

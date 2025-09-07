@@ -46,7 +46,7 @@ EMAIL_PASS=your_app_password
 
 ### ✅ Повторная отправка email:
 ```bash
-POST http://localhost:5005/api/auth/resend-verification
+POST https://api.bearplus.ru/api/api/auth/resend-verification
 Content-Type: application/json
 
 {
@@ -56,7 +56,7 @@ Content-Type: application/json
 
 ### ✅ Регистрация с отправкой email:
 ```bash
-POST http://localhost:5005/api/auth/register
+POST https://api.bearplus.ru/api/api/auth/register
 # Автоматически отправляет email верификации
 ```
 

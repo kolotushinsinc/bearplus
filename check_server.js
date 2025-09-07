@@ -15,7 +15,7 @@ try {
   console.log('2. cd server && npm run dev');
   
   console.log('\n✅ API маршрут доступен по адресу:');
-  console.log('POST http://localhost:5005/api/auth/resend-verification');
+  console.log('POST https://api.bearplus.ru/api/api/auth/resend-verification');
   console.log('Body: {"email": "user@example.com"}');
   
 } catch (error) {

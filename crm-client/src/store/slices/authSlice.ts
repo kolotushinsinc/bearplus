@@ -3,7 +3,7 @@ import axios from 'axios';
 
 // Настройка axios для CRM
 const api = axios.create({
-  baseURL: 'http://localhost:5005',
+  baseURL: 'https://api.bearplus.ru',
   withCredentials: true,
   timeout: 10000,
   headers: {
@@ -42,6 +42,7 @@ export const loginAdmin = createAsyncThunk(
   'auth/loginAdmin',
   async (credentials: { email: string; password: string }, { rejectWithValue }) => {
     try {
+      console.log(api);
       const response = await api.post('/api/auth/login', credentials);
       
       if (response.data.success && response.data.user.userType === 'admin') {

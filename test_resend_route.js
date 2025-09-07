@@ -4,7 +4,7 @@ async function testResendRoute() {
   try {
     console.log('🧪 Тестирование маршрута resend-verification...');
     
-    const response = await fetch('http://localhost:5005/api/auth/resend-verification', {
+    const response = await fetch('https://api.bearplus.ru/api/api/auth/resend-verification', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

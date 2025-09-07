@@ -262,7 +262,7 @@ const DocumentsManagement: React.FC = () => {
                             // For viewing, try to open the document URL
                             const fullUrl = response.data.url.startsWith('http')
                               ? response.data.url
-                              : `${import.meta.env.VITE_API_URL || 'http://localhost:5005'}${response.data.url}`;
+                              : `${import.meta.env.VITE_API_URL || 'https://api.bearplus.ru/api'}${response.data.url}`;
                             window.open(fullUrl, '_blank');
                           } else {
                             alert('Ошибка при открытии документа: ' + (response.message || 'Документ не найден'));

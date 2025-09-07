@@ -47,7 +47,7 @@ fi
 if [ ! -f client/.env ]; then
     echo "📝 Creating client environment file..."
     cat > client/.env << EOL
-VITE_API_URL=http://localhost:5005/api
+VITE_API_URL=https://api.bearplus.ru/api/api
 VITE_APP_NAME=BearPlus
 VITE_APP_VERSION=1.0.0
 EOL
@@ -56,7 +56,7 @@ fi
 if [ ! -f crm-client/.env ]; then
     echo "📝 Creating CRM client environment file..."
     cat > crm-client/.env << EOL
-REACT_APP_API_URL=http://localhost:5005/api
+REACT_APP_API_URL=https://api.bearplus.ru/api/api
 REACT_APP_NAME=BearPlus CRM
 EOL
 fi
@@ -148,7 +148,7 @@ echo ""
 echo "🌐 Services will be available at:"
 echo "   📊 Main Client:  http://localhost:5173"
 echo "   🏢 CRM Client:   http://localhost:3000"
-echo "   🖥️  API Server:   http://localhost:5005"
+echo "   🖥️  API Server:   https://api.bearplus.ru/api"
 echo "   🍃 MongoDB:      mongodb://localhost:27017"
 echo ""
 echo "📋 To stop all services, run: ./stop.sh"
@@ -172,7 +172,7 @@ check_service() {
 }
 
 echo "🔍 Checking service status..."
-check_service "API Server" "http://localhost:5005/api/health"
+check_service "API Server" "https://api.bearplus.ru/api/api/health"
 check_service "Main Client" "http://localhost:5173"
 check_service "CRM Client" "http://localhost:3000"
 

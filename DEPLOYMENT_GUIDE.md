@@ -128,7 +128,7 @@ server {
 
     # API
     location /api {
-        proxy_pass http://localhost:5005;
+        proxy_pass https://api.bearplus.ru/api;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
     }
@@ -198,7 +198,7 @@ docker-compose logs -f mongo
 ### Мониторинг здоровья
 ```bash
 # Проверка API
-curl http://localhost:5005/api/health
+curl https://api.bearplus.ru/api/api/health
 
 # Проверка frontend
 curl http://localhost:5173

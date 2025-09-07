@@ -7,7 +7,7 @@ import {
 } from '../types';
 
 // Базовая конфигурация axios
-const API_BASE_URL = 'http://localhost:5005/api';
+const API_BASE_URL = 'https://api.bearplus.ru/api';
 
 const api = axios.create({
   baseURL: API_BASE_URL,

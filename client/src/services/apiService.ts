@@ -28,21 +28,21 @@ export const ordersApi = {
     if (params?.page) queryParams.append('page', params.page.toString());
     if (params?.limit) queryParams.append('limit', params.limit.toString());
     
-    const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5005/api'}/orders?${queryParams}`, {
+    const response = await fetch(`${import.meta.env.VITE_API_URL || 'https://api.bearplus.ru/api/api'}/orders?${queryParams}`, {
       credentials: 'include',
     });
     return response.json();
   },
 
   getOrderById: async (orderId: string): Promise<ApiResponse> => {
-    const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5005/api'}/orders/${orderId}`, {
+    const response = await fetch(`${import.meta.env.VITE_API_URL || 'https://api.bearplus.ru/api/api'}/orders/${orderId}`, {
       credentials: 'include',
     });
     return response.json();
   },
 
   createOrder: async (orderData: any): Promise<ApiResponse> => {
-    const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5005/api'}/orders`, {
+    const response = await fetch(`${import.meta.env.VITE_API_URL || 'https://api.bearplus.ru/api/api'}/orders`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       credentials: 'include',
@@ -52,7 +52,7 @@ export const ordersApi = {
   },
 
   confirmStage: async (orderId: string, stageId: string): Promise<ApiResponse> => {
-    const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5005/api'}/orders/${orderId}/stages/${stageId}/confirm`, {
+    const response = await fetch(`${import.meta.env.VITE_API_URL || 'https://api.bearplus.ru/api/api'}/orders/${orderId}/stages/${stageId}/confirm`, {
       method: 'POST',
       credentials: 'include',
     });
@@ -60,7 +60,7 @@ export const ordersApi = {
   },
 
   updateOrderStatus: async (orderId: string, status: string, notes?: string): Promise<ApiResponse> => {
-    const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5005/api'}/orders/${orderId}/status`, {
+    const response = await fetch(`${import.meta.env.VITE_API_URL || 'https://api.bearplus.ru/api/api'}/orders/${orderId}/status`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       credentials: 'include',
@@ -70,7 +70,7 @@ export const ordersApi = {
   },
 
   deleteOrder: async (orderId: string): Promise<ApiResponse> => {
-    const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5005/api'}/orders/${orderId}`, {
+    const response = await fetch(`${import.meta.env.VITE_API_URL || 'https://api.bearplus.ru/api/api'}/orders/${orderId}`, {
       method: 'DELETE',
       credentials: 'include',
     });
@@ -88,7 +88,7 @@ export const documentsApi = {
     if (params?.page) queryParams.append('page', params.page.toString());
     if (params?.limit) queryParams.append('limit', params.limit.toString());
     
-    const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5005/api'}/documents?${queryParams}`, {
+    const response = await fetch(`${import.meta.env.VITE_API_URL || 'https://api.bearplus.ru/api/api'}/documents?${queryParams}`, {
       credentials: 'include',
     });
     return response.json();
@@ -102,7 +102,7 @@ export const documentsApi = {
     if (type) formData.append('type', type);
     if (orderId) formData.append('orderId', orderId);
 
-    const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5005/api'}/documents/upload`, {
+    const response = await fetch(`${import.meta.env.VITE_API_URL || 'https://api.bearplus.ru/api/api'}/documents/upload`, {
       method: 'POST',
       credentials: 'include',
       body: formData,
@@ -111,14 +111,14 @@ export const documentsApi = {
   },
 
   getDocumentById: async (documentId: string): Promise<ApiResponse> => {
-    const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5005/api'}/documents/${documentId}`, {
+    const response = await fetch(`${import.meta.env.VITE_API_URL || 'https://api.bearplus.ru/api/api'}/documents/${documentId}`, {
       credentials: 'include',
     });
     return response.json();
   },
 
   downloadDocument: async (documentId: string): Promise<void> => {
-    const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5005/api'}/documents/${documentId}/download`, {
+    const response = await fetch(`${import.meta.env.VITE_API_URL || 'https://api.bearplus.ru/api/api'}/documents/${documentId}/download`, {
       credentials: 'include',
     });
     
@@ -132,7 +132,7 @@ export const documentsApi = {
         // Convert relative URL to absolute URL for static files
         const fullUrl = data.downloadUrl.startsWith('http')
           ? data.downloadUrl
-          : `${import.meta.env.VITE_API_URL || 'http://localhost:5005'}${data.downloadUrl}`;
+          : `${import.meta.env.VITE_API_URL || 'https://api.bearplus.ru/api'}${data.downloadUrl}`;
         window.open(fullUrl, '_blank');
       } else {
         console.error('Download failed:', data.message);
@@ -169,7 +169,7 @@ export const documentsApi = {
   },
 
   deleteDocument: async (documentId: string): Promise<ApiResponse> => {
-    const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5005/api'}/documents/${documentId}`, {
+    const response = await fetch(`${import.meta.env.VITE_API_URL || 'https://api.bearplus.ru/api/api'}/documents/${documentId}`, {
       method: 'DELETE',
       credentials: 'include',
     });
@@ -184,7 +184,7 @@ export const messagesApi = {
     if (params?.page) queryParams.append('page', params.page.toString());
     if (params?.limit) queryParams.append('limit', params.limit.toString());
     
-    const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5005/api'}/messages/chats?${queryParams}`, {
+    const response = await fetch(`${import.meta.env.VITE_API_URL || 'https://api.bearplus.ru/api/api'}/messages/chats?${queryParams}`, {
       credentials: 'include',
     });
     return response.json();
@@ -195,14 +195,14 @@ export const messagesApi = {
     if (params?.page) queryParams.append('page', params.page.toString());
     if (params?.limit) queryParams.append('limit', params.limit.toString());
     
-    const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5005/api'}/messages/chats/${chatId}/messages?${queryParams}`, {
+    const response = await fetch(`${import.meta.env.VITE_API_URL || 'https://api.bearplus.ru/api/api'}/messages/chats/${chatId}/messages?${queryParams}`, {
       credentials: 'include',
     });
     return response.json();
   },
 
   sendMessage: async (chatId: string, content: string, type: string = 'text'): Promise<ApiResponse> => {
-    const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5005/api'}/messages/chats/${chatId}/messages`, {
+    const response = await fetch(`${import.meta.env.VITE_API_URL || 'https://api.bearplus.ru/api/api'}/messages/chats/${chatId}/messages`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       credentials: 'include',
@@ -212,7 +212,7 @@ export const messagesApi = {
   },
 
   markAsRead: async (chatId: string): Promise<ApiResponse> => {
-    const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5005/api'}/messages/chats/${chatId}/read`, {
+    const response = await fetch(`${import.meta.env.VITE_API_URL || 'https://api.bearplus.ru/api/api'}/messages/chats/${chatId}/read`, {
       method: 'POST',
       credentials: 'include',
     });
@@ -220,7 +220,7 @@ export const messagesApi = {
   },
 
   createChat: async (title: string, participantIds: string[], orderId?: string): Promise<ApiResponse> => {
-    const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5005/api'}/messages/chats`, {
+    const response = await fetch(`${import.meta.env.VITE_API_URL || 'https://api.bearplus.ru/api/api'}/messages/chats`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       credentials: 'include',
@@ -233,7 +233,7 @@ export const messagesApi = {
 // Shipping API
 export const shippingApi = {
   calculateRate: async (data: any): Promise<ApiResponse> => {
-    const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5005/api'}/shipping/calculate`, {
+    const response = await fetch(`${import.meta.env.VITE_API_URL || 'https://api.bearplus.ru/api/api'}/shipping/calculate`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       credentials: 'include',
@@ -243,7 +243,7 @@ export const shippingApi = {
   },
 
   submitDangerousCargoRequest: async (data: any): Promise<ApiResponse> => {
-    const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5005/api'}/shipping/dangerous-cargo`, {
+    const response = await fetch(`${import.meta.env.VITE_API_URL || 'https://api.bearplus.ru/api/api'}/shipping/dangerous-cargo`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       credentials: 'include',
@@ -262,14 +262,14 @@ export const ratesApi = {
     if (params?.type && params.type !== 'all') queryParams.append('type', params.type);
     if (params?.search) queryParams.append('search', params.search);
     
-    const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5005/api'}/rates?${queryParams}`, {
+    const response = await fetch(`${import.meta.env.VITE_API_URL || 'https://api.bearplus.ru/api/api'}/rates?${queryParams}`, {
       credentials: 'include',
     });
     return response.json();
   },
 
   createRate: async (rateData: any): Promise<ApiResponse> => {
-    const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5005/api'}/rates`, {
+    const response = await fetch(`${import.meta.env.VITE_API_URL || 'https://api.bearplus.ru/api/api'}/rates`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       credentials: 'include',
@@ -279,7 +279,7 @@ export const ratesApi = {
   },
 
   updateRate: async (rateId: string, rateData: any): Promise<ApiResponse> => {
-    const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5005/api'}/rates/${rateId}`, {
+    const response = await fetch(`${import.meta.env.VITE_API_URL || 'https://api.bearplus.ru/api/api'}/rates/${rateId}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       credentials: 'include',
@@ -289,7 +289,7 @@ export const ratesApi = {
   },
 
   deleteRate: async (rateId: string): Promise<ApiResponse> => {
-    const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5005/api'}/rates/${rateId}`, {
+    const response = await fetch(`${import.meta.env.VITE_API_URL || 'https://api.bearplus.ru/api/api'}/rates/${rateId}`, {
       method: 'DELETE',
       credentials: 'include',
     });
@@ -301,7 +301,7 @@ export const ratesApi = {
     formData.append('file', file);
     formData.append('rateType', rateType);
 
-    const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5005/api'}/rates/upload`, {
+    const response = await fetch(`${import.meta.env.VITE_API_URL || 'https://api.bearplus.ru/api/api'}/rates/upload`, {
       method: 'POST',
       credentials: 'include',
       body: formData,
@@ -314,7 +314,7 @@ export const ratesApi = {
     if (params?.type && params.type !== 'all') queryParams.append('type', params.type);
     if (params?.format) queryParams.append('format', params.format);
     
-    const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5005/api'}/rates/export?${queryParams}`, {
+    const response = await fetch(`${import.meta.env.VITE_API_URL || 'https://api.bearplus.ru/api/api'}/rates/export?${queryParams}`, {
       credentials: 'include',
     });
     
@@ -330,7 +330,7 @@ export const ratesApi = {
   },
 
   downloadTemplate: async (): Promise<void> => {
-    const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5005/api'}/rates/template`, {
+    const response = await fetch(`${import.meta.env.VITE_API_URL || 'https://api.bearplus.ru/api/api'}/rates/template`, {
       credentials: 'include',
     });
     
@@ -354,21 +354,21 @@ export const loyaltyApi = {
     if (params?.limit) queryParams.append('limit', params.limit.toString());
     if (params?.search) queryParams.append('search', params.search);
     
-    const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5005/api'}/loyalty/clients?${queryParams}`, {
+    const response = await fetch(`${import.meta.env.VITE_API_URL || 'https://api.bearplus.ru/api/api'}/loyalty/clients?${queryParams}`, {
       credentials: 'include',
     });
     return response.json();
   },
 
   getLoyaltyRules: async (): Promise<ApiResponse> => {
-    const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5005/api'}/loyalty/rules`, {
+    const response = await fetch(`${import.meta.env.VITE_API_URL || 'https://api.bearplus.ru/api/api'}/loyalty/rules`, {
       credentials: 'include',
     });
     return response.json();
   },
 
   updateClientDiscount: async (clientId: string, discount: number, reason: string): Promise<ApiResponse> => {
-    const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5005/api'}/loyalty/clients/${clientId}/discount`, {
+    const response = await fetch(`${import.meta.env.VITE_API_URL || 'https://api.bearplus.ru/api/api'}/loyalty/clients/${clientId}/discount`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       credentials: 'include',
@@ -378,7 +378,7 @@ export const loyaltyApi = {
   },
 
   calculateSuggestedDiscount: async (clientId: string): Promise<ApiResponse> => {
-    const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5005/api'}/loyalty/clients/${clientId}/suggested-discount`, {
+    const response = await fetch(`${import.meta.env.VITE_API_URL || 'https://api.bearplus.ru/api/api'}/loyalty/clients/${clientId}/suggested-discount`, {
       credentials: 'include',
     });
     return response.json();
@@ -388,7 +388,7 @@ export const loyaltyApi = {
     const queryParams = new URLSearchParams();
     if (clientId) queryParams.append('clientId', clientId);
     
-    const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5005/api'}/loyalty/history?${queryParams}`, {
+    const response = await fetch(`${import.meta.env.VITE_API_URL || 'https://api.bearplus.ru/api/api'}/loyalty/history?${queryParams}`, {
       credentials: 'include',
     });
     return response.json();
@@ -398,14 +398,14 @@ export const loyaltyApi = {
 // Margins API (for agents)
 export const marginsApi = {
   getMarginSettings: async (): Promise<ApiResponse> => {
-    const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5005/api'}/margins`, {
+    const response = await fetch(`${import.meta.env.VITE_API_URL || 'https://api.bearplus.ru/api/api'}/margins`, {
       credentials: 'include',
     });
     return response.json();
   },
 
   updateMarginSetting: async (marginId: string, data: any): Promise<ApiResponse> => {
-    const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5005/api'}/margins/${marginId}`, {
+    const response = await fetch(`${import.meta.env.VITE_API_URL || 'https://api.bearplus.ru/api/api'}/margins/${marginId}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       credentials: 'include',
@@ -415,7 +415,7 @@ export const marginsApi = {
   },
 
   calculateMargin: async (baseAmount: number, serviceType: string, currency?: string): Promise<ApiResponse> => {
-    const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5005/api'}/margins/calculate`, {
+    const response = await fetch(`${import.meta.env.VITE_API_URL || 'https://api.bearplus.ru/api/api'}/margins/calculate`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       credentials: 'include',
@@ -428,14 +428,14 @@ export const marginsApi = {
 // Currency API
 export const currencyApi = {
   getCurrencyRates: async (): Promise<ApiResponse> => {
-    const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5005/api'}/currency/rates`, {
+    const response = await fetch(`${import.meta.env.VITE_API_URL || 'https://api.bearplus.ru/api/api'}/currency/rates`, {
       credentials: 'include',
     });
     return response.json();
   },
 
   updateCurrencyRates: async (): Promise<ApiResponse> => {
-    const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5005/api'}/currency/update`, {
+    const response = await fetch(`${import.meta.env.VITE_API_URL || 'https://api.bearplus.ru/api/api'}/currency/update`, {
       method: 'POST',
       credentials: 'include',
     });
@@ -443,7 +443,7 @@ export const currencyApi = {
   },
 
   convertCurrency: async (amount: number, fromCurrency: string, toCurrency: string): Promise<ApiResponse> => {
-    const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5005/api'}/currency/convert`, {
+    const response = await fetch(`${import.meta.env.VITE_API_URL || 'https://api.bearplus.ru/api/api'}/currency/convert`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       credentials: 'include',
@@ -456,7 +456,7 @@ export const currencyApi = {
 // Password Reset API (new flow with 4-digit code)
 export const passwordResetApi = {
   requestCode: async (email: string): Promise<ApiResponse> => {
-    const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5005/api'}/auth/forgot-password`, {
+    const response = await fetch(`${import.meta.env.VITE_API_URL || 'https://api.bearplus.ru/api/api'}/auth/forgot-password`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       credentials: 'include',
@@ -466,7 +466,7 @@ export const passwordResetApi = {
   },
 
   verifyCode: async (email: string, code: string): Promise<ApiResponse> => {
-    const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5005/api'}/auth/verify-reset-code`, {
+    const response = await fetch(`${import.meta.env.VITE_API_URL || 'https://api.bearplus.ru/api/api'}/auth/verify-reset-code`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       credentials: 'include',
@@ -476,7 +476,7 @@ export const passwordResetApi = {
   },
 
   resetPassword: async (email: string, code: string, password: string, confirmPassword: string): Promise<ApiResponse> => {
-    const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5005/api'}/auth/reset-password`, {
+    const response = await fetch(`${import.meta.env.VITE_API_URL || 'https://api.bearplus.ru/api/api'}/auth/reset-password`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       credentials: 'include',
